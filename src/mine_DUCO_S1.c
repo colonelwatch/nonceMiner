@@ -1,6 +1,7 @@
 #include "mine_DUCO_S1.h"
 
 long _get_divisor(long x){
+    if(x == 0) return 1; // In case a single zero digit is recieved
     long temp = 1;
     while(x >= temp) temp *= 10;
     return temp / 10;
@@ -85,14 +86,23 @@ long mine_DUCO_S1(
 {
     SHA1_CTX base_ctx = set_sha1_base(input_prefix);
     long maximum = 100*difficulty+1;
+    SHA1_CTX *cache_ctx = (SHA1_CTX*)malloc(maximum*sizeof(SHA1_CTX)/10);
     
     for(long i = 0; i < maximum; i++){
         unsigned char temp_hash[HASH_SIZE];
-        //get_sha1_deriv(base_ctx, temp_hash, i);
-        SHA1_CTX cache_ctx = base_ctx;
-        modify_sha1_ctx(&cache_ctx, i);
-        complete_sha1_hash(temp_hash, &cache_ctx);
+        SHA1_CTX temp_ctx;
+        if(i < 10){
+            temp_ctx = base_ctx;
+            modify_sha1_ctx(&temp_ctx, i);
+        }
+        else{
+            temp_ctx = cache_ctx[i/10];
+            modify_sha1_ctx(&temp_ctx, i%10);
+        }
+        if(i < maximum/10) cache_ctx[i] = temp_ctx;
+        complete_sha1_hash(temp_hash, &temp_ctx);
         if(compare_hash(target_hexdigest, temp_hash)) return i;
     }
+    free(cache_ctx);
     return -1;
 }
