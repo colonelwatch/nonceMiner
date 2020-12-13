@@ -56,17 +56,15 @@ SHA1_CTX set_sha1_base(
     return base_ctx;
 }
 
-void get_sha1_deriv(
-    SHA1_CTX base_ctx,
-    unsigned char hash[HASH_SIZE],
-    long nonce)
-{
-    SHA1_CTX ctx = base_ctx;
+void modify_sha1_ctx(SHA1_CTX *ctx_ptr, long nonce){
     for(long divisor = _get_divisor(nonce); divisor != 0; divisor /= 10){
         const unsigned char digit = (unsigned char)((nonce%(divisor*10))/divisor)+'0';
-        SHA1Update(&ctx, &digit, 1);
+        SHA1Update(ctx_ptr, &digit, 1);
     }
-    SHA1Final(hash, &ctx);
+}
+
+void complete_sha1_hash(unsigned char hash[HASH_SIZE], SHA1_CTX *ctx_ptr){
+    SHA1Final(hash, ctx_ptr);
 }
 
 int compare_hash(
@@ -90,7 +88,10 @@ long mine_DUCO_S1(
     
     for(long i = 0; i < maximum; i++){
         unsigned char temp_hash[HASH_SIZE];
-        get_sha1_deriv(base_ctx, temp_hash, i);
+        //get_sha1_deriv(base_ctx, temp_hash, i);
+        SHA1_CTX cache_ctx = base_ctx;
+        modify_sha1_ctx(&cache_ctx, i);
+        complete_sha1_hash(temp_hash, &cache_ctx);
         if(compare_hash(target_hexdigest, temp_hash)) return i;
     }
     return -1;
