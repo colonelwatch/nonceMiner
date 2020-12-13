@@ -101,7 +101,10 @@ long mine_DUCO_S1(
         }
         if(i < maximum/10) cache_ctx[i] = temp_ctx;
         complete_sha1_hash(temp_hash, &temp_ctx);
-        if(compare_hash(target_hexdigest, temp_hash)) return i;
+        if(compare_hash(target_hexdigest, temp_hash)){
+            free(cache_ctx);
+            return i;
+        }
     }
     free(cache_ctx);
     return -1;
