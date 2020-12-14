@@ -56,8 +56,10 @@ if __name__ == '__main__':
         p_list.append(p)
         time.sleep(1/N_PROCESSES)
     try:
+        past_time = time.time()
         while True:
             time.sleep(2)
+            current_time = time.time()
 
             with hashcount.get_lock():
                 hash_in_2s = hashcount.value
@@ -69,9 +71,10 @@ if __name__ == '__main__':
                 rejected_in_2s = rejected.value
                 rejected.value = 0
             
-            print('Hash rate: %.2f' % (hash_in_2s/2000000), 'MH/s with a CPU usage of', psutil.cpu_percent())
+            print('Hash rate: %.2f' % (hash_in_2s/1000000/(current_time-past_time)), 'MH/s with a CPU usage of', psutil.cpu_percent())
             print('Accepted shares in 2s:', accepted_in_2s, '\tRejected shares in 2s:', rejected_in_2s)
             print()
+            past_time = current_time
 
             for i in range(len(p_list)):
                 if(not p_list[i].is_alive()):
