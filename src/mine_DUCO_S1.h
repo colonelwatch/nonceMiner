@@ -1,3 +1,4 @@
+#include <stdlib.h>
 #include <stdio.h>
 
 #include "sha1.h"
@@ -16,10 +17,13 @@ SHA1_CTX update_sha1_base(
     SHA1_CTX base_ctx,
     const unsigned char byte);
 
-void get_sha1_deriv(
-    SHA1_CTX base_ctx,
-    unsigned char hash[HASH_SIZE],
+void modify_sha1_ctx(
+    SHA1_CTX *ctx_ptr,
     long nonce);
+
+void complete_sha1_hash(
+    unsigned char hash[HASH_SIZE],
+    SHA1_CTX *ctx_ptr);
 
 int compare_hash(
     const char hex_digest[HASH_SIZE*2],
