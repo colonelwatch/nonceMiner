@@ -1,18 +1,16 @@
-import socket, urllib.request, time # Python 3 included
+import socket, urllib.request, time, sys # Python 3 included
 import multiprocessing as mp        # Also Python 3 included
-import psutil                       # Install with 'pip install psutil'
 import nonceMiner
 
-username = 'travelmode'
-
-N_PROCESSES = 64 # I've found 128 is better performance but will glitch the hashrate counter
+USERNAME = sys.argv[1]
+N_PROCESSES = int(sys.argv[2])
 
 serverip = 'https://raw.githubusercontent.com/revoxhere/duino-coin/gh-pages/serverip.txt' 
 pool_location = urllib.request.urlopen(serverip).read().decode().splitlines()
 pool_ip = pool_location[0]
 pool_port = int(pool_location[1])
 
-job_request_bytes = ('JOB,'+username).encode('utf-8')
+job_request_bytes = ('JOB,'+USERNAME).encode('utf-8')
 
 def mineDUCO(hashcount, accepted, rejected):
     soc = socket.socket()
@@ -27,7 +25,6 @@ def mineDUCO(hashcount, accepted, rejected):
             target_bytes = job[1].encode('ascii')
             difficulty = int(job[2])
 
-            # threaded mining means the result no longer equals the hashcount!
             result = nonceMiner.c_mine_DUCO_S1(prefix_bytes, target_bytes, difficulty)
 
             soc.send(str(result).encode('utf-8')) # Send result of hashing algorithm to pool
@@ -71,7 +68,7 @@ if __name__ == '__main__':
                 rejected_in_2s = rejected.value
                 rejected.value = 0
             
-            print('Hash rate: %.2f' % (hash_in_2s/1000000/(current_time-past_time)), 'MH/s with a CPU usage of', psutil.cpu_percent())
+            print('Hash rate: %.2f' % (hash_in_2s/1000000/(current_time-past_time)), 'MH/s')
             print('Accepted shares in 2s:', accepted_in_2s, '\tRejected shares in 2s:', rejected_in_2s)
             print()
             past_time = current_time
