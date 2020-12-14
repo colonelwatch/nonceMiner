@@ -1021,13 +1021,10 @@ static void __Pyx_AddTraceback(const char *funcname, int c_line,
                                int py_line, const char *filename);
 
 /* CIntToPy.proto */
-static CYTHON_INLINE PyObject* __Pyx_PyInt_From_int(int value);
+static CYTHON_INLINE PyObject* __Pyx_PyInt_From_long(long value);
 
 /* CIntFromPy.proto */
 static CYTHON_INLINE int __Pyx_PyInt_As_int(PyObject *);
-
-/* CIntToPy.proto */
-static CYTHON_INLINE PyObject* __Pyx_PyInt_From_long(long value);
 
 /* CIntFromPy.proto */
 static CYTHON_INLINE long __Pyx_PyInt_As_long(PyObject *);
@@ -1065,12 +1062,14 @@ static const char __pyx_k_prefix[] = "prefix";
 static const char __pyx_k_target[] = "target";
 static const char __pyx_k_difficulty[] = "difficulty";
 static const char __pyx_k_nonceMiner[] = "nonceMiner";
+static const char __pyx_k_extend_cache[] = "extend_cache";
 static const char __pyx_k_c_mine_DUCO_S1[] = "c_mine_DUCO_S1";
 static const char __pyx_k_cline_in_traceback[] = "cline_in_traceback";
 static const char __pyx_k_src_nonceMiner_pyx[] = "src\\nonceMiner.pyx";
 static PyObject *__pyx_n_s_c_mine_DUCO_S1;
 static PyObject *__pyx_n_s_cline_in_traceback;
 static PyObject *__pyx_n_s_difficulty;
+static PyObject *__pyx_n_s_extend_cache;
 static PyObject *__pyx_n_s_main;
 static PyObject *__pyx_n_s_name;
 static PyObject *__pyx_n_s_nonceMiner;
@@ -1078,16 +1077,17 @@ static PyObject *__pyx_n_s_prefix;
 static PyObject *__pyx_kp_s_src_nonceMiner_pyx;
 static PyObject *__pyx_n_s_target;
 static PyObject *__pyx_n_s_test;
-static PyObject *__pyx_pf_10nonceMiner_c_mine_DUCO_S1(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_prefix, PyObject *__pyx_v_target, PyObject *__pyx_v_difficulty); /* proto */
+static PyObject *__pyx_pf_10nonceMiner_c_mine_DUCO_S1(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_prefix, PyObject *__pyx_v_target, PyObject *__pyx_v_difficulty, PyObject *__pyx_v_extend_cache); /* proto */
 static PyObject *__pyx_tuple_;
 static PyObject *__pyx_codeobj__2;
 /* Late includes */
 
-/* "nonceMiner.pyx":8
+/* "nonceMiner.pyx":12
  *         int difficulty)
  * 
- * def c_mine_DUCO_S1(prefix : bytes, target : bytes, difficulty : int) -> int:             # <<<<<<<<<<<<<<
- *     return mine_DUCO_S1(target, prefix, difficulty)
+ * def c_mine_DUCO_S1(prefix : bytes, target : bytes, difficulty : int, extend_cache : bool = True) -> int:             # <<<<<<<<<<<<<<
+ *     if(extend_cache): return mine_DUCO_S1_extend_cache(target, prefix, difficulty)
+ *     else: return mine_DUCO_S1(target, prefix, difficulty)
  */
 
 /* Python wrapper */
@@ -1097,6 +1097,7 @@ static PyObject *__pyx_pw_10nonceMiner_1c_mine_DUCO_S1(PyObject *__pyx_self, PyO
   PyObject *__pyx_v_prefix = 0;
   PyObject *__pyx_v_target = 0;
   PyObject *__pyx_v_difficulty = 0;
+  PyObject *__pyx_v_extend_cache = 0;
   int __pyx_lineno = 0;
   const char *__pyx_filename = NULL;
   int __pyx_clineno = 0;
@@ -1104,12 +1105,15 @@ static PyObject *__pyx_pw_10nonceMiner_1c_mine_DUCO_S1(PyObject *__pyx_self, PyO
   __Pyx_RefNannyDeclarations
   __Pyx_RefNannySetupContext("c_mine_DUCO_S1 (wrapper)", 0);
   {
-    static PyObject **__pyx_pyargnames[] = {&__pyx_n_s_prefix,&__pyx_n_s_target,&__pyx_n_s_difficulty,0};
-    PyObject* values[3] = {0,0,0};
+    static PyObject **__pyx_pyargnames[] = {&__pyx_n_s_prefix,&__pyx_n_s_target,&__pyx_n_s_difficulty,&__pyx_n_s_extend_cache,0};
+    PyObject* values[4] = {0,0,0,0};
+    values[3] = ((PyObject *)Py_True);
     if (unlikely(__pyx_kwds)) {
       Py_ssize_t kw_args;
       const Py_ssize_t pos_args = PyTuple_GET_SIZE(__pyx_args);
       switch (pos_args) {
+        case  4: values[3] = PyTuple_GET_ITEM(__pyx_args, 3);
+        CYTHON_FALLTHROUGH;
         case  3: values[2] = PyTuple_GET_ITEM(__pyx_args, 2);
         CYTHON_FALLTHROUGH;
         case  2: values[1] = PyTuple_GET_ITEM(__pyx_args, 1);
@@ -1128,40 +1132,51 @@ static PyObject *__pyx_pw_10nonceMiner_1c_mine_DUCO_S1(PyObject *__pyx_self, PyO
         case  1:
         if (likely((values[1] = __Pyx_PyDict_GetItemStr(__pyx_kwds, __pyx_n_s_target)) != 0)) kw_args--;
         else {
-          __Pyx_RaiseArgtupleInvalid("c_mine_DUCO_S1", 1, 3, 3, 1); __PYX_ERR(0, 8, __pyx_L3_error)
+          __Pyx_RaiseArgtupleInvalid("c_mine_DUCO_S1", 0, 3, 4, 1); __PYX_ERR(0, 12, __pyx_L3_error)
         }
         CYTHON_FALLTHROUGH;
         case  2:
         if (likely((values[2] = __Pyx_PyDict_GetItemStr(__pyx_kwds, __pyx_n_s_difficulty)) != 0)) kw_args--;
         else {
-          __Pyx_RaiseArgtupleInvalid("c_mine_DUCO_S1", 1, 3, 3, 2); __PYX_ERR(0, 8, __pyx_L3_error)
+          __Pyx_RaiseArgtupleInvalid("c_mine_DUCO_S1", 0, 3, 4, 2); __PYX_ERR(0, 12, __pyx_L3_error)
+        }
+        CYTHON_FALLTHROUGH;
+        case  3:
+        if (kw_args > 0) {
+          PyObject* value = __Pyx_PyDict_GetItemStr(__pyx_kwds, __pyx_n_s_extend_cache);
+          if (value) { values[3] = value; kw_args--; }
         }
       }
       if (unlikely(kw_args > 0)) {
-        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "c_mine_DUCO_S1") < 0)) __PYX_ERR(0, 8, __pyx_L3_error)
+        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "c_mine_DUCO_S1") < 0)) __PYX_ERR(0, 12, __pyx_L3_error)
       }
-    } else if (PyTuple_GET_SIZE(__pyx_args) != 3) {
-      goto __pyx_L5_argtuple_error;
     } else {
-      values[0] = PyTuple_GET_ITEM(__pyx_args, 0);
-      values[1] = PyTuple_GET_ITEM(__pyx_args, 1);
-      values[2] = PyTuple_GET_ITEM(__pyx_args, 2);
+      switch (PyTuple_GET_SIZE(__pyx_args)) {
+        case  4: values[3] = PyTuple_GET_ITEM(__pyx_args, 3);
+        CYTHON_FALLTHROUGH;
+        case  3: values[2] = PyTuple_GET_ITEM(__pyx_args, 2);
+        values[1] = PyTuple_GET_ITEM(__pyx_args, 1);
+        values[0] = PyTuple_GET_ITEM(__pyx_args, 0);
+        break;
+        default: goto __pyx_L5_argtuple_error;
+      }
     }
     __pyx_v_prefix = ((PyObject*)values[0]);
     __pyx_v_target = ((PyObject*)values[1]);
     __pyx_v_difficulty = values[2];
+    __pyx_v_extend_cache = values[3];
   }
   goto __pyx_L4_argument_unpacking_done;
   __pyx_L5_argtuple_error:;
-  __Pyx_RaiseArgtupleInvalid("c_mine_DUCO_S1", 1, 3, 3, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(0, 8, __pyx_L3_error)
+  __Pyx_RaiseArgtupleInvalid("c_mine_DUCO_S1", 0, 3, 4, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(0, 12, __pyx_L3_error)
   __pyx_L3_error:;
   __Pyx_AddTraceback("nonceMiner.c_mine_DUCO_S1", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __Pyx_RefNannyFinishContext();
   return NULL;
   __pyx_L4_argument_unpacking_done:;
-  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_prefix), (&PyBytes_Type), 1, "prefix", 1))) __PYX_ERR(0, 8, __pyx_L1_error)
-  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_target), (&PyBytes_Type), 1, "target", 1))) __PYX_ERR(0, 8, __pyx_L1_error)
-  __pyx_r = __pyx_pf_10nonceMiner_c_mine_DUCO_S1(__pyx_self, __pyx_v_prefix, __pyx_v_target, __pyx_v_difficulty);
+  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_prefix), (&PyBytes_Type), 1, "prefix", 1))) __PYX_ERR(0, 12, __pyx_L1_error)
+  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_target), (&PyBytes_Type), 1, "target", 1))) __PYX_ERR(0, 12, __pyx_L1_error)
+  __pyx_r = __pyx_pf_10nonceMiner_c_mine_DUCO_S1(__pyx_self, __pyx_v_prefix, __pyx_v_target, __pyx_v_difficulty, __pyx_v_extend_cache);
 
   /* function exit code */
   goto __pyx_L0;
@@ -1172,51 +1187,84 @@ static PyObject *__pyx_pw_10nonceMiner_1c_mine_DUCO_S1(PyObject *__pyx_self, PyO
   return __pyx_r;
 }
 
-static PyObject *__pyx_pf_10nonceMiner_c_mine_DUCO_S1(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_prefix, PyObject *__pyx_v_target, PyObject *__pyx_v_difficulty) {
+static PyObject *__pyx_pf_10nonceMiner_c_mine_DUCO_S1(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_prefix, PyObject *__pyx_v_target, PyObject *__pyx_v_difficulty, PyObject *__pyx_v_extend_cache) {
   PyObject *__pyx_r = NULL;
   __Pyx_RefNannyDeclarations
-  char const *__pyx_t_1;
-  unsigned char const *__pyx_t_2;
-  int __pyx_t_3;
-  PyObject *__pyx_t_4 = NULL;
+  int __pyx_t_1;
+  char const *__pyx_t_2;
+  unsigned char const *__pyx_t_3;
+  int __pyx_t_4;
+  PyObject *__pyx_t_5 = NULL;
+  char const *__pyx_t_6;
+  unsigned char const *__pyx_t_7;
   int __pyx_lineno = 0;
   const char *__pyx_filename = NULL;
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("c_mine_DUCO_S1", 0);
 
-  /* "nonceMiner.pyx":9
+  /* "nonceMiner.pyx":13
  * 
- * def c_mine_DUCO_S1(prefix : bytes, target : bytes, difficulty : int) -> int:
- *     return mine_DUCO_S1(target, prefix, difficulty)             # <<<<<<<<<<<<<<
+ * def c_mine_DUCO_S1(prefix : bytes, target : bytes, difficulty : int, extend_cache : bool = True) -> int:
+ *     if(extend_cache): return mine_DUCO_S1_extend_cache(target, prefix, difficulty)             # <<<<<<<<<<<<<<
+ *     else: return mine_DUCO_S1(target, prefix, difficulty)
  */
-  __Pyx_XDECREF(__pyx_r);
-  if (unlikely(__pyx_v_target == Py_None)) {
-    PyErr_SetString(PyExc_TypeError, "expected bytes, NoneType found");
-    __PYX_ERR(0, 9, __pyx_L1_error)
+  __pyx_t_1 = __Pyx_PyObject_IsTrue(__pyx_v_extend_cache); if (unlikely(__pyx_t_1 < 0)) __PYX_ERR(0, 13, __pyx_L1_error)
+  if (__pyx_t_1) {
+    __Pyx_XDECREF(__pyx_r);
+    if (unlikely(__pyx_v_target == Py_None)) {
+      PyErr_SetString(PyExc_TypeError, "expected bytes, NoneType found");
+      __PYX_ERR(0, 13, __pyx_L1_error)
+    }
+    __pyx_t_2 = __Pyx_PyBytes_AsString(__pyx_v_target); if (unlikely((!__pyx_t_2) && PyErr_Occurred())) __PYX_ERR(0, 13, __pyx_L1_error)
+    if (unlikely(__pyx_v_prefix == Py_None)) {
+      PyErr_SetString(PyExc_TypeError, "expected bytes, NoneType found");
+      __PYX_ERR(0, 13, __pyx_L1_error)
+    }
+    __pyx_t_3 = __Pyx_PyBytes_AsUString(__pyx_v_prefix); if (unlikely((!__pyx_t_3) && PyErr_Occurred())) __PYX_ERR(0, 13, __pyx_L1_error)
+    __pyx_t_4 = __Pyx_PyInt_As_int(__pyx_v_difficulty); if (unlikely((__pyx_t_4 == (int)-1) && PyErr_Occurred())) __PYX_ERR(0, 13, __pyx_L1_error)
+    __pyx_t_5 = __Pyx_PyInt_From_long(mine_DUCO_S1_extend_cache(__pyx_t_2, __pyx_t_3, __pyx_t_4)); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 13, __pyx_L1_error)
+    __Pyx_GOTREF(__pyx_t_5);
+    __pyx_r = __pyx_t_5;
+    __pyx_t_5 = 0;
+    goto __pyx_L0;
   }
-  __pyx_t_1 = __Pyx_PyBytes_AsString(__pyx_v_target); if (unlikely((!__pyx_t_1) && PyErr_Occurred())) __PYX_ERR(0, 9, __pyx_L1_error)
-  if (unlikely(__pyx_v_prefix == Py_None)) {
-    PyErr_SetString(PyExc_TypeError, "expected bytes, NoneType found");
-    __PYX_ERR(0, 9, __pyx_L1_error)
-  }
-  __pyx_t_2 = __Pyx_PyBytes_AsUString(__pyx_v_prefix); if (unlikely((!__pyx_t_2) && PyErr_Occurred())) __PYX_ERR(0, 9, __pyx_L1_error)
-  __pyx_t_3 = __Pyx_PyInt_As_int(__pyx_v_difficulty); if (unlikely((__pyx_t_3 == (int)-1) && PyErr_Occurred())) __PYX_ERR(0, 9, __pyx_L1_error)
-  __pyx_t_4 = __Pyx_PyInt_From_int(mine_DUCO_S1(__pyx_t_1, __pyx_t_2, __pyx_t_3)); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 9, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_4);
-  __pyx_r = __pyx_t_4;
-  __pyx_t_4 = 0;
-  goto __pyx_L0;
 
-  /* "nonceMiner.pyx":8
+  /* "nonceMiner.pyx":14
+ * def c_mine_DUCO_S1(prefix : bytes, target : bytes, difficulty : int, extend_cache : bool = True) -> int:
+ *     if(extend_cache): return mine_DUCO_S1_extend_cache(target, prefix, difficulty)
+ *     else: return mine_DUCO_S1(target, prefix, difficulty)             # <<<<<<<<<<<<<<
+ */
+  /*else*/ {
+    __Pyx_XDECREF(__pyx_r);
+    if (unlikely(__pyx_v_target == Py_None)) {
+      PyErr_SetString(PyExc_TypeError, "expected bytes, NoneType found");
+      __PYX_ERR(0, 14, __pyx_L1_error)
+    }
+    __pyx_t_6 = __Pyx_PyBytes_AsString(__pyx_v_target); if (unlikely((!__pyx_t_6) && PyErr_Occurred())) __PYX_ERR(0, 14, __pyx_L1_error)
+    if (unlikely(__pyx_v_prefix == Py_None)) {
+      PyErr_SetString(PyExc_TypeError, "expected bytes, NoneType found");
+      __PYX_ERR(0, 14, __pyx_L1_error)
+    }
+    __pyx_t_7 = __Pyx_PyBytes_AsUString(__pyx_v_prefix); if (unlikely((!__pyx_t_7) && PyErr_Occurred())) __PYX_ERR(0, 14, __pyx_L1_error)
+    __pyx_t_4 = __Pyx_PyInt_As_int(__pyx_v_difficulty); if (unlikely((__pyx_t_4 == (int)-1) && PyErr_Occurred())) __PYX_ERR(0, 14, __pyx_L1_error)
+    __pyx_t_5 = __Pyx_PyInt_From_long(mine_DUCO_S1(__pyx_t_6, __pyx_t_7, __pyx_t_4)); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 14, __pyx_L1_error)
+    __Pyx_GOTREF(__pyx_t_5);
+    __pyx_r = __pyx_t_5;
+    __pyx_t_5 = 0;
+    goto __pyx_L0;
+  }
+
+  /* "nonceMiner.pyx":12
  *         int difficulty)
  * 
- * def c_mine_DUCO_S1(prefix : bytes, target : bytes, difficulty : int) -> int:             # <<<<<<<<<<<<<<
- *     return mine_DUCO_S1(target, prefix, difficulty)
+ * def c_mine_DUCO_S1(prefix : bytes, target : bytes, difficulty : int, extend_cache : bool = True) -> int:             # <<<<<<<<<<<<<<
+ *     if(extend_cache): return mine_DUCO_S1_extend_cache(target, prefix, difficulty)
+ *     else: return mine_DUCO_S1(target, prefix, difficulty)
  */
 
   /* function exit code */
   __pyx_L1_error:;
-  __Pyx_XDECREF(__pyx_t_4);
+  __Pyx_XDECREF(__pyx_t_5);
   __Pyx_AddTraceback("nonceMiner.c_mine_DUCO_S1", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __pyx_r = NULL;
   __pyx_L0:;
@@ -1274,6 +1322,7 @@ static __Pyx_StringTabEntry __pyx_string_tab[] = {
   {&__pyx_n_s_c_mine_DUCO_S1, __pyx_k_c_mine_DUCO_S1, sizeof(__pyx_k_c_mine_DUCO_S1), 0, 0, 1, 1},
   {&__pyx_n_s_cline_in_traceback, __pyx_k_cline_in_traceback, sizeof(__pyx_k_cline_in_traceback), 0, 0, 1, 1},
   {&__pyx_n_s_difficulty, __pyx_k_difficulty, sizeof(__pyx_k_difficulty), 0, 0, 1, 1},
+  {&__pyx_n_s_extend_cache, __pyx_k_extend_cache, sizeof(__pyx_k_extend_cache), 0, 0, 1, 1},
   {&__pyx_n_s_main, __pyx_k_main, sizeof(__pyx_k_main), 0, 0, 1, 1},
   {&__pyx_n_s_name, __pyx_k_name, sizeof(__pyx_k_name), 0, 0, 1, 1},
   {&__pyx_n_s_nonceMiner, __pyx_k_nonceMiner, sizeof(__pyx_k_nonceMiner), 0, 0, 1, 1},
@@ -1291,16 +1340,17 @@ static CYTHON_SMALL_CODE int __Pyx_InitCachedConstants(void) {
   __Pyx_RefNannyDeclarations
   __Pyx_RefNannySetupContext("__Pyx_InitCachedConstants", 0);
 
-  /* "nonceMiner.pyx":8
+  /* "nonceMiner.pyx":12
  *         int difficulty)
  * 
- * def c_mine_DUCO_S1(prefix : bytes, target : bytes, difficulty : int) -> int:             # <<<<<<<<<<<<<<
- *     return mine_DUCO_S1(target, prefix, difficulty)
+ * def c_mine_DUCO_S1(prefix : bytes, target : bytes, difficulty : int, extend_cache : bool = True) -> int:             # <<<<<<<<<<<<<<
+ *     if(extend_cache): return mine_DUCO_S1_extend_cache(target, prefix, difficulty)
+ *     else: return mine_DUCO_S1(target, prefix, difficulty)
  */
-  __pyx_tuple_ = PyTuple_Pack(3, __pyx_n_s_prefix, __pyx_n_s_target, __pyx_n_s_difficulty); if (unlikely(!__pyx_tuple_)) __PYX_ERR(0, 8, __pyx_L1_error)
+  __pyx_tuple_ = PyTuple_Pack(4, __pyx_n_s_prefix, __pyx_n_s_target, __pyx_n_s_difficulty, __pyx_n_s_extend_cache); if (unlikely(!__pyx_tuple_)) __PYX_ERR(0, 12, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_tuple_);
   __Pyx_GIVEREF(__pyx_tuple_);
-  __pyx_codeobj__2 = (PyObject*)__Pyx_PyCode_New(3, 0, 3, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple_, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_src_nonceMiner_pyx, __pyx_n_s_c_mine_DUCO_S1, 8, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__2)) __PYX_ERR(0, 8, __pyx_L1_error)
+  __pyx_codeobj__2 = (PyObject*)__Pyx_PyCode_New(4, 0, 4, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple_, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_src_nonceMiner_pyx, __pyx_n_s_c_mine_DUCO_S1, 12, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__2)) __PYX_ERR(0, 12, __pyx_L1_error)
   __Pyx_RefNannyFinishContext();
   return 0;
   __pyx_L1_error:;
@@ -1581,21 +1631,22 @@ if (!__Pyx_RefNanny) {
   if (__Pyx_patch_abc() < 0) __PYX_ERR(0, 1, __pyx_L1_error)
   #endif
 
-  /* "nonceMiner.pyx":8
+  /* "nonceMiner.pyx":12
  *         int difficulty)
  * 
- * def c_mine_DUCO_S1(prefix : bytes, target : bytes, difficulty : int) -> int:             # <<<<<<<<<<<<<<
- *     return mine_DUCO_S1(target, prefix, difficulty)
+ * def c_mine_DUCO_S1(prefix : bytes, target : bytes, difficulty : int, extend_cache : bool = True) -> int:             # <<<<<<<<<<<<<<
+ *     if(extend_cache): return mine_DUCO_S1_extend_cache(target, prefix, difficulty)
+ *     else: return mine_DUCO_S1(target, prefix, difficulty)
  */
-  __pyx_t_1 = PyCFunction_NewEx(&__pyx_mdef_10nonceMiner_1c_mine_DUCO_S1, NULL, __pyx_n_s_nonceMiner); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 8, __pyx_L1_error)
+  __pyx_t_1 = PyCFunction_NewEx(&__pyx_mdef_10nonceMiner_1c_mine_DUCO_S1, NULL, __pyx_n_s_nonceMiner); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 12, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
-  if (PyDict_SetItem(__pyx_d, __pyx_n_s_c_mine_DUCO_S1, __pyx_t_1) < 0) __PYX_ERR(0, 8, __pyx_L1_error)
+  if (PyDict_SetItem(__pyx_d, __pyx_n_s_c_mine_DUCO_S1, __pyx_t_1) < 0) __PYX_ERR(0, 12, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
 
   /* "nonceMiner.pyx":1
  * cdef extern from 'mine_DUCO_S1.h':             # <<<<<<<<<<<<<<
  *     # Assuming a HASH_SIZE of 20
- *     int mine_DUCO_S1(
+ *     long mine_DUCO_S1(
  */
   __pyx_t_1 = __Pyx_PyDict_NewPresized(0); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 1, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
@@ -2101,24 +2152,24 @@ bad:
     }
 
 /* CIntToPy */
-static CYTHON_INLINE PyObject* __Pyx_PyInt_From_int(int value) {
-    const int neg_one = (int) ((int) 0 - (int) 1), const_zero = (int) 0;
+static CYTHON_INLINE PyObject* __Pyx_PyInt_From_long(long value) {
+    const long neg_one = (long) ((long) 0 - (long) 1), const_zero = (long) 0;
     const int is_unsigned = neg_one > const_zero;
     if (is_unsigned) {
-        if (sizeof(int) < sizeof(long)) {
+        if (sizeof(long) < sizeof(long)) {
             return PyInt_FromLong((long) value);
-        } else if (sizeof(int) <= sizeof(unsigned long)) {
+        } else if (sizeof(long) <= sizeof(unsigned long)) {
             return PyLong_FromUnsignedLong((unsigned long) value);
 #ifdef HAVE_LONG_LONG
-        } else if (sizeof(int) <= sizeof(unsigned PY_LONG_LONG)) {
+        } else if (sizeof(long) <= sizeof(unsigned PY_LONG_LONG)) {
             return PyLong_FromUnsignedLongLong((unsigned PY_LONG_LONG) value);
 #endif
         }
     } else {
-        if (sizeof(int) <= sizeof(long)) {
+        if (sizeof(long) <= sizeof(long)) {
             return PyInt_FromLong((long) value);
 #ifdef HAVE_LONG_LONG
-        } else if (sizeof(int) <= sizeof(PY_LONG_LONG)) {
+        } else if (sizeof(long) <= sizeof(PY_LONG_LONG)) {
             return PyLong_FromLongLong((PY_LONG_LONG) value);
 #endif
         }
@@ -2126,7 +2177,7 @@ static CYTHON_INLINE PyObject* __Pyx_PyInt_From_int(int value) {
     {
         int one = 1; int little = (int)*(unsigned char *)&one;
         unsigned char *bytes = (unsigned char *)&value;
-        return _PyLong_FromByteArray(bytes, sizeof(int),
+        return _PyLong_FromByteArray(bytes, sizeof(long),
                                      little, !is_unsigned);
     }
 }
@@ -2318,37 +2369,6 @@ raise_neg_overflow:
     PyErr_SetString(PyExc_OverflowError,
         "can't convert negative value to int");
     return (int) -1;
-}
-
-/* CIntToPy */
-static CYTHON_INLINE PyObject* __Pyx_PyInt_From_long(long value) {
-    const long neg_one = (long) ((long) 0 - (long) 1), const_zero = (long) 0;
-    const int is_unsigned = neg_one > const_zero;
-    if (is_unsigned) {
-        if (sizeof(long) < sizeof(long)) {
-            return PyInt_FromLong((long) value);
-        } else if (sizeof(long) <= sizeof(unsigned long)) {
-            return PyLong_FromUnsignedLong((unsigned long) value);
-#ifdef HAVE_LONG_LONG
-        } else if (sizeof(long) <= sizeof(unsigned PY_LONG_LONG)) {
-            return PyLong_FromUnsignedLongLong((unsigned PY_LONG_LONG) value);
-#endif
-        }
-    } else {
-        if (sizeof(long) <= sizeof(long)) {
-            return PyInt_FromLong((long) value);
-#ifdef HAVE_LONG_LONG
-        } else if (sizeof(long) <= sizeof(PY_LONG_LONG)) {
-            return PyLong_FromLongLong((PY_LONG_LONG) value);
-#endif
-        }
-    }
-    {
-        int one = 1; int little = (int)*(unsigned char *)&one;
-        unsigned char *bytes = (unsigned char *)&value;
-        return _PyLong_FromByteArray(bytes, sizeof(long),
-                                     little, !is_unsigned);
-    }
 }
 
 /* CIntFromPy */

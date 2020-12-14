@@ -65,7 +65,7 @@ void modify_sha1_ctx(SHA1_CTX *ctx_ptr, long nonce){
 }
 
 void complete_sha1_hash(unsigned char hash[HASH_SIZE], SHA1_CTX *ctx_ptr){
-    SHA1Final(hash, ctx_ptr);
+    SHA1Final(hash, ctx_ptr); // Wipes context at ctx_ptr when complete
 }
 
 int compare_hash(
@@ -80,6 +80,24 @@ int compare_hash(
 }
 
 long mine_DUCO_S1(
+    const char target_hexdigest[HASH_SIZE*2],
+    const unsigned char input_prefix[HASH_SIZE*2],
+    int difficulty)
+{
+    SHA1_CTX base_ctx = set_sha1_base(input_prefix);
+    long maximum = 100*difficulty+1;
+    
+    for(long i = 0; i < maximum; i++){
+        unsigned char temp_hash[HASH_SIZE];
+        SHA1_CTX temp_ctx = base_ctx;
+        modify_sha1_ctx(&temp_ctx, i);
+        complete_sha1_hash(temp_hash, &temp_ctx);
+        if(compare_hash(target_hexdigest, temp_hash)) return i;
+    }
+    return -1;
+}
+
+long mine_DUCO_S1_extend_cache(
     const char target_hexdigest[HASH_SIZE*2],
     const unsigned char input_prefix[HASH_SIZE*2],
     int difficulty)
