@@ -8,7 +8,7 @@ long _get_divisor(long x){
 }
 
 // 0 index holds upper bits and 1 index holds lower bits
-unsigned char _char_hex_to_byte(const char hex[2]){
+unsigned char _char_hex_to_byte(const unsigned char hex[2]){
     unsigned char sum = 0;
     switch(hex[0]){
         case '1': sum += 1<<4; break;
@@ -48,7 +48,7 @@ unsigned char _char_hex_to_byte(const char hex[2]){
 }
 
 SHA1_CTX set_sha1_base(
-    const char input_prefix[HASH_SIZE*2])
+    const unsigned char input_prefix[HASH_SIZE*2])
 {
     SHA1_CTX base_ctx;
     SHA1Init(&base_ctx);
@@ -69,7 +69,7 @@ void complete_sha1_hash(unsigned char hash[HASH_SIZE], SHA1_CTX *ctx_ptr){
 }
 
 int compare_hash(
-    const char hex_digest[2*HASH_SIZE],
+    const unsigned char hex_digest[2*HASH_SIZE],
     const unsigned char byte_digest[HASH_SIZE])
 {
     for(int i = 0; i < HASH_SIZE; i++){
@@ -80,7 +80,7 @@ int compare_hash(
 }
 
 long mine_DUCO_S1(
-    const char target_hexdigest[HASH_SIZE*2],
+    const unsigned char target_hexdigest[HASH_SIZE*2],
     const unsigned char input_prefix[HASH_SIZE*2],
     int difficulty)
 {
@@ -98,7 +98,7 @@ long mine_DUCO_S1(
 }
 
 long mine_DUCO_S1_extend_cache(
-    const char target_hexdigest[HASH_SIZE*2],
+    const unsigned char target_hexdigest[HASH_SIZE*2],
     const unsigned char input_prefix[HASH_SIZE*2],
     int difficulty)
 {
