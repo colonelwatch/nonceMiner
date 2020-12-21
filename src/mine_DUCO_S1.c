@@ -7,46 +7,6 @@ long _get_divisor(long x){
     return temp / 10;
 }
 
-// 0 index holds upper bits and 1 index holds lower bits
-unsigned char _char_hex_to_byte(const unsigned char hex[2]){
-    unsigned char sum = 0;
-    switch(hex[0]){
-        case '1': sum += 1<<4; break;
-        case '2': sum += 2<<4; break;
-        case '3': sum += 3<<4; break;
-        case '4': sum += 4<<4; break;
-        case '5': sum += 5<<4; break;
-        case '6': sum += 6<<4; break;
-        case '7': sum += 7<<4; break;
-        case '8': sum += 8<<4; break;
-        case '9': sum += 9<<4; break;
-        case 'a': sum += 10<<4; break;
-        case 'b': sum += 11<<4; break;
-        case 'c': sum += 12<<4; break;
-        case 'd': sum += 13<<4; break;
-        case 'e': sum += 14<<4; break;
-        case 'f': sum += 15<<4; break;
-    }
-    switch(hex[1]){
-        case '1': sum += 1; break;
-        case '2': sum += 2; break;
-        case '3': sum += 3; break;
-        case '4': sum += 4; break;
-        case '5': sum += 5; break;
-        case '6': sum += 6; break;
-        case '7': sum += 7; break;
-        case '8': sum += 8; break;
-        case '9': sum += 9; break;
-        case 'a': sum += 10; break;
-        case 'b': sum += 11; break;
-        case 'c': sum += 12; break;
-        case 'd': sum += 13; break;
-        case 'e': sum += 14; break;
-        case 'f': sum += 15; break;
-    }
-    return sum;
-}
-
 void set_sha1_base(
     SHA1_CTX *ctx_ptr,
     const unsigned char input_prefix[HASH_SIZE*2])
@@ -72,8 +32,9 @@ int compare_hash(
     const unsigned char byte_digest[HASH_SIZE])
 {
     for(int i = 0; i < HASH_SIZE; i++){
-        unsigned char byte_val = _char_hex_to_byte(&hex_digest[2*i]);
-        if(byte_val != byte_digest[i]) return 0;
+        char msb = "0123456789abcdef"[byte_digest[i]>>4],
+             lsb = "0123456789abcdef"[byte_digest[i]&0x0f];
+        if(msb != hex_digest[2*i] || lsb != hex_digest[2*i+1]) return 0;
     }
     return 1;
 }

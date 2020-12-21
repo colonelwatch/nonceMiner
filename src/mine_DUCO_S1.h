@@ -11,7 +11,6 @@
 
 // private functions
 long _get_divisor(long x);
-unsigned char _char_hex_to_byte(const unsigned char hex[2]);
 
 // public functions
 void set_sha1_base(
