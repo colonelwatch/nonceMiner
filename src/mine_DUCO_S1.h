@@ -14,6 +14,7 @@ long _get_divisor(long x);
 
 // public functions
 void set_sha1_base(
+    SHA1_CTX *ctx_ptr,
     const unsigned char input_prefix[HASH_SIZE*2]);
 
 SHA1_CTX update_sha1_base(
