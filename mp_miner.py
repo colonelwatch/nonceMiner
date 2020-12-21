@@ -14,10 +14,9 @@ job_request_bytes = ('JOB,'+USERNAME).encode('utf-8')
 
 def mineDUCO(hashcount, accepted, rejected):
     soc = socket.socket()
-    soc.connect((pool_ip, pool_port))
-    soc.recv(3) # Receive version, but don't bother decoding
-
     try:
+        soc.connect((pool_ip, pool_port))
+        soc.recv(3) # Receive version, but don't bother decoding
         while True:
             soc.send(job_request_bytes)
             job = soc.recv(1024) # Receive work byte-string from pool
