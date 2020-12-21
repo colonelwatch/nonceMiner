@@ -14,7 +14,7 @@ long _get_divisor(long x);
 unsigned char _char_hex_to_byte(const unsigned char hex[2]);
 
 // public functions
-SHA1_CTX set_sha1_base(
+void set_sha1_base(
     const unsigned char input_prefix[HASH_SIZE*2]);
 
 SHA1_CTX update_sha1_base(
