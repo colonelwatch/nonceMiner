@@ -40,8 +40,8 @@ int compare_hash(
 }
 
 long mine_DUCO_S1(
-    const unsigned char target_hexdigest[HASH_SIZE*2],
     const unsigned char input_prefix[HASH_SIZE*2],
+    const unsigned char target_hexdigest[HASH_SIZE*2],
     int difficulty)
 {
     SHA1_CTX base_ctx;
@@ -59,8 +59,8 @@ long mine_DUCO_S1(
 }
 
 long mine_DUCO_S1_extend_cache(
-    const unsigned char target_hexdigest[HASH_SIZE*2],
     const unsigned char input_prefix[HASH_SIZE*2],
+    const unsigned char target_hexdigest[HASH_SIZE*2],
     int difficulty)
 {
     SHA1_CTX base_ctx;

@@ -34,11 +34,11 @@ int compare_hash(
     const unsigned char byte_digest[HASH_SIZE]);
 
 long mine_DUCO_S1(
-    const unsigned char target_hash[HASH_SIZE*2],
     const unsigned char hash_prefix[HASH_SIZE*2],
+    const unsigned char target_hash[HASH_SIZE*2],
     int difficulty);
 
 long mine_DUCO_S1_extend_cache(
-    const unsigned char target_hexdigest[HASH_SIZE*2],
     const unsigned char input_prefix[HASH_SIZE*2],
+    const unsigned char target_hexdigest[HASH_SIZE*2],
     int difficulty);
