@@ -35,6 +35,18 @@ def mineDUCO(hashcount):
         soc.close()
         return
 
+def ping_server():
+    soc = socket.socket()
+    soc.settimeout(2.0)
+    try:
+        soc.connect((pool_ip, pool_port))
+        soc.recv(3)
+        soc.close()
+        return True
+    except:
+        soc.close()
+        return False
+
 if __name__ == '__main__':
     hashcount = mp.Value('i', 0, lock=True)
     p_list = []
@@ -55,13 +67,15 @@ if __name__ == '__main__':
             hashrate = hash_in_2s/1000000/(current_time-past_time)
             past_time = current_time
             
-            print('Hash rate: %.2f MH/s' % hashrate)
-
-            for i in range(len(p_list)):
-                if(not p_list[i].is_alive()):
-                    p_list[i].join()
-                    p_list[i] = mp.Process(target=mineDUCO, args=tuple([hashcount]))
-                    p_list[i].start()
+            if(ping_server()):
+                for i in range(len(p_list)):
+                    if(not p_list[i].is_alive()):
+                        p_list[i].join()
+                        p_list[i] = mp.Process(target=mineDUCO, args=tuple([hashcount]))
+                        p_list[i].start()
+                print('Hash rate: %.2f MH/s' % hashrate)
+            else:
+                print('Hash rate: %.2f MH/s, server ping timeout' % hashrate)
     except:
         print('Terminating processes...')
         time.sleep(2)
