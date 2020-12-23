@@ -1,6 +1,6 @@
-import socket, urllib.request, time, sys # Python 3 included
-import multiprocessing as mp        # Also Python 3 included
-from ctypes import c_char
+import socket, urllib.request, time, datetime   # Python 3 included
+import multiprocessing as mp                    # Also Python 3 included
+from ctypes import c_char                       # Also Python 3 included
 import nonceMiner
 
 AUTO_RESTART_TIME = 360
@@ -78,6 +78,7 @@ if __name__ == '__main__':
             hashrate = hash_in_2s/1000000/(current_time-past_time)
             past_time = current_time
             
+            print(datetime.datetime.now().strftime("%H:%M:%S"), end='  ')
             if(ping_server()):
                 for i in range(len(p_list)):
                     if(not p_list[i].is_alive()):
@@ -89,7 +90,8 @@ if __name__ == '__main__':
             else:
                 print('Hash rate: %.2f MH/s, server ping timeout' % hashrate)
     except:
+        time.sleep(0.1)
         print('Terminating processes...')
-        time.sleep(2)
+        time.sleep(4)
         for i in range(len(p_list)):
             p_list[i].terminate()
