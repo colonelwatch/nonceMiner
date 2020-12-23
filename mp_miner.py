@@ -12,6 +12,7 @@ pool_port = int(pool_location[1])
 
 def process_mineDUCO(hashcount, job_request_bytes):
     soc = socket.socket()
+    soc.settimeout(16.0)
     try:
         soc.connect((pool_ip, pool_port))
         soc.recv(3) # Receive version, but don't bother decoding
