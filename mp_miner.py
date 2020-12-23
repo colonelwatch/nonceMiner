@@ -66,6 +66,7 @@ if __name__ == '__main__':
         p_list.append(p)
         time.sleep(4/N_PROCESSES)
     try:
+        with hashcount.get_lock(): hashcount.value = 0
         past_time = time.time()
         while True:
             time.sleep(2)
