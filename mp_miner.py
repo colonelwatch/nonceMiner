@@ -4,6 +4,7 @@ import nonceMiner
 
 USERNAME = sys.argv[1]
 N_PROCESSES = int(sys.argv[2])
+AUTO_RESTART_TIME = 360
 
 serverip = 'https://raw.githubusercontent.com/revoxhere/duino-coin/gh-pages/serverip.txt' 
 pool_location = urllib.request.urlopen(serverip).read().decode().splitlines()
@@ -17,7 +18,8 @@ def mineDUCO(hashcount):
     try:
         soc.connect((pool_ip, pool_port))
         soc.recv(3) # Receive version, but don't bother decoding
-        while True:
+        start_time = time.time()
+        while time.time() < start_time + AUTO_RESTART_TIME:
             soc.send(job_request_bytes)
             job = soc.recv(1024) # Receive work byte-string from pool
             prefix_bytes = job[0:40] # Prefix is first 40 bytes
@@ -31,6 +33,8 @@ def mineDUCO(hashcount):
             
             with hashcount.get_lock():
                 hashcount.value += result
+        soc.close()
+        return
     except:
         soc.close()
         return
@@ -54,7 +58,7 @@ if __name__ == '__main__':
         p = mp.Process(target=mineDUCO, args=tuple([hashcount]))
         p.start()
         p_list.append(p)
-        time.sleep(1/N_PROCESSES)
+        time.sleep(4/N_PROCESSES)
     try:
         past_time = time.time()
         while True:
@@ -73,6 +77,7 @@ if __name__ == '__main__':
                         p_list[i].join()
                         p_list[i] = mp.Process(target=mineDUCO, args=tuple([hashcount]))
                         p_list[i].start()
+                        time.sleep(4/N_PROCESSES)
                 print('Hash rate: %.2f MH/s' % hashrate)
             else:
                 print('Hash rate: %.2f MH/s, server ping timeout' % hashrate)
