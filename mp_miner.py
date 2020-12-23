@@ -1,9 +1,8 @@
-import socket, urllib.request, time, sys # Python 3 included
-import multiprocessing as mp        # Also Python 3 included
+import socket, urllib.request, time, datetime   # Python 3 included
+import multiprocessing as mp                    # Also Python 3 included
+from ctypes import c_char                       # Also Python 3 included
 import nonceMiner
 
-USERNAME = sys.argv[1]
-N_PROCESSES = int(sys.argv[2])
 AUTO_RESTART_TIME = 360
 
 serverip = 'https://raw.githubusercontent.com/revoxhere/duino-coin/gh-pages/serverip.txt' 
@@ -11,9 +10,7 @@ pool_location = urllib.request.urlopen(serverip).read().decode().splitlines()
 pool_ip = pool_location[0]
 pool_port = int(pool_location[1])
 
-job_request_bytes = ('JOB,'+USERNAME).encode('utf-8')
-
-def mineDUCO(hashcount):
+def process_mineDUCO(hashcount, job_request_bytes):
     soc = socket.socket()
     try:
         soc.connect((pool_ip, pool_port))
@@ -52,14 +49,24 @@ def ping_server():
         return False
 
 if __name__ == '__main__':
+    mp.freeze_support() # Required for conversion to exe
+
+    print('Initializing nonceMiner mp_miner...')
+    USERNAME = input('Enter username: ')
+    N_PROCESSES = int(input('Enter # of processes: '))
+    time.sleep(0.1)
+    print('Starting processes...')
+
     hashcount = mp.Value('i', 0, lock=True)
+    job_request_bytes = mp.Array(c_char, b'JOB,'+USERNAME.encode('utf-8'), lock=False)
     p_list = []
     for i in range(N_PROCESSES):
-        p = mp.Process(target=mineDUCO, args=tuple([hashcount]))
+        p = mp.Process(target=process_mineDUCO, args=(hashcount, job_request_bytes))
         p.start()
         p_list.append(p)
         time.sleep(4/N_PROCESSES)
     try:
+        with hashcount.get_lock(): hashcount.value = 0
         past_time = time.time()
         while True:
             time.sleep(2)
@@ -71,18 +78,20 @@ if __name__ == '__main__':
             hashrate = hash_in_2s/1000000/(current_time-past_time)
             past_time = current_time
             
+            print(datetime.datetime.now().strftime("%H:%M:%S"), end='  ')
             if(ping_server()):
                 for i in range(len(p_list)):
                     if(not p_list[i].is_alive()):
                         p_list[i].join()
-                        p_list[i] = mp.Process(target=mineDUCO, args=tuple([hashcount]))
+                        p_list[i] = mp.Process(target=process_mineDUCO, args=(hashcount, job_request_bytes))
                         p_list[i].start()
                         time.sleep(4/N_PROCESSES)
                 print('Hash rate: %.2f MH/s' % hashrate)
             else:
                 print('Hash rate: %.2f MH/s, server ping timeout' % hashrate)
     except:
+        time.sleep(0.1)
         print('Terminating processes...')
-        time.sleep(2)
+        time.sleep(4)
         for i in range(len(p_list)):
             p_list[i].terminate()
