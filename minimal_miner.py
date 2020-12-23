@@ -22,11 +22,10 @@ print('Server is on version', server_version)
 # Mining section
 while True:
     soc.send(bytes('JOB,'+str(username), encoding='utf8')) # Send job request
-    job = soc.recv(1024).decode() # Get work from pool
-    job = job.split(',') # Split received data to job (job and difficulty)
-    prefix_bytes = job[0].encode('ascii')
-    target_bytes = job[1].encode('ascii')
-    difficulty = int(job[2])
+    job = soc.recv(1024) # Receive work byte-string from pool
+    prefix_bytes = job[0:40] # Prefix is first 40 bytes
+    target_bytes = job[41:81] # Target is 40 bytes after comma
+    difficulty = int(job[82:]) # Difficulty is all bytes after second comma in utf-8
 
     result = nonceMiner.c_mine_DUCO_S1(prefix_bytes, target_bytes, difficulty)
 
