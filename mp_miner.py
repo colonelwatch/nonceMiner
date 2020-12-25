@@ -3,6 +3,7 @@ import multiprocessing as mp                    # Also Python 3 included
 from ctypes import c_char                       # Also Python 3 included
 import nonceMiner
 
+MINER_VERSION = "v1.0"
 AUTO_RESTART_TIME = 360
 
 serverip = 'https://raw.githubusercontent.com/revoxhere/duino-coin/gh-pages/serverip.txt' 
@@ -17,6 +18,7 @@ def process_mineDUCO(hashcount, job_request_bytes):
         soc.connect((pool_ip, pool_port))
         soc.recv(3) # Receive version, but don't bother decoding
         start_time = time.time()
+        compute_start_time = time.time()
         while time.time() < start_time + AUTO_RESTART_TIME:
             soc.send(job_request_bytes)
             job = soc.recv(1024) # Receive work byte-string from pool
@@ -26,7 +28,12 @@ def process_mineDUCO(hashcount, job_request_bytes):
 
             result = nonceMiner.c_mine_DUCO_S1(prefix_bytes, target_bytes, difficulty)
 
-            soc.send(str(result).encode('utf-8')) # Send result of hashing algorithm to pool
+            compute_end_time = time.time()
+            local_hashrate = int(result/(compute_end_time-compute_start_time))
+            compute_start_time = compute_end_time
+
+            # Send result of hashing algorithm to pool along with metadata
+            soc.send(('%i,%i,nonceMiner %s mp_miner'%(result, local_hashrate, MINER_VERSION)).encode('utf-8'))
             soc.recv(1024) # Receive feedback, don't bother decoding
             
             with hashcount.get_lock():
