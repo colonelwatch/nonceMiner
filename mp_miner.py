@@ -33,7 +33,7 @@ def process_mineDUCO(hashcount, job_request_bytes):
             compute_start_time = compute_end_time
 
             # Send result of hashing algorithm to pool along with metadata
-            soc.send(('%i,%i,nonceMiner %s mp_miner'%(result, local_hashrate, MINER_VERSION)).encode('utf-8'))
+            soc.send(('%i,%i,nonceMiner_%s'%(result, local_hashrate, MINER_VERSION)).encode('utf-8'))
             soc.recv(1024) # Receive feedback, don't bother decoding
             
             with hashcount.get_lock():
