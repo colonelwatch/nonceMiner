@@ -3,7 +3,7 @@ import multiprocessing as mp                    # Also Python 3 included
 from ctypes import c_char                       # Also Python 3 included
 import nonceMiner
 
-MINER_VERSION = "v1.0"
+MINER_VERSION = "v1.1"
 AUTO_RESTART_TIME = 30*3600 # 30 minutes
 
 serverip = 'https://raw.githubusercontent.com/revoxhere/duino-coin/gh-pages/serverip.txt' 
