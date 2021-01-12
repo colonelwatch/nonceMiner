@@ -4,7 +4,7 @@ from ctypes import c_char                       # Also Python 3 included
 import nonceMiner
 
 MINER_VERSION = "v1.0"
-AUTO_RESTART_TIME = 360
+AUTO_RESTART_TIME = 30*3600 # 30 minutes
 
 serverip = 'https://raw.githubusercontent.com/revoxhere/duino-coin/gh-pages/serverip.txt' 
 pool_location = urllib.request.urlopen(serverip).read().decode().splitlines()
