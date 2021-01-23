@@ -52,7 +52,10 @@ def process_mineDUCO(hashcount, accepted, rejected, job_request_bytes):
                     rejected.value += 1
         soc.close()
         return
-    except:
+    except (OSError, KeyboardInterrupt): # Handle socket errors and KeyboardInterrupt the same, with a restart
+        soc.close()
+        return
+    except: # TODO: Gracefully report other encountered exceptions before restarting as well
         soc.close()
         return
 
@@ -68,7 +71,7 @@ def thread_monitor_server():
             soc.recv(3)
             soc.close()
             server_is_online = True
-        except:
+        except OSError:
             soc.close()
             server_is_online = False
         time.sleep(2)
@@ -148,7 +151,7 @@ if __name__ == '__main__':
                 print()
             else:
                 print(', server ping timeout')
-    except:
+    except KeyboardInterrupt:
         time.sleep(0.1)
         print('Terminating processes...')
         time.sleep(4)
