@@ -1,6 +1,10 @@
-import socket, urllib.request, time, datetime   # Python 3 included
-import multiprocessing as mp                    # Also Python 3 included
-from ctypes import c_char                       # Also Python 3 included
+import socket
+import urllib.request
+import time
+import datetime
+import multiprocessing as mp
+from ctypes import c_char
+
 import nonceMiner
 
 MINER_VERSION = "v1.1"
@@ -33,7 +37,7 @@ def process_mineDUCO(hashcount, accepted, rejected, job_request_bytes):
             compute_start_time = compute_end_time
 
             # Send result of hashing algorithm to pool along with metadata
-            soc.send(('%i,%i,nonceMiner_%s'%(result, local_hashrate, MINER_VERSION)).encode('utf-8'))
+            soc.send(f'{result},{local_hashrate},nonceMiner_{MINER_VERSION}'.encode('utf-8'))
             feedback_bytes = soc.recv(1024) # Receive feedback, don't bother decoding
             
             # Update counters according to feedback
@@ -118,9 +122,9 @@ if __name__ == '__main__':
                         p_list[i] = mp.Process(target=process_mineDUCO, args=(hashcount, accepted, rejected, job_request_bytes))
                         p_list[i].start()
                         time.sleep(4/N_PROCESSES)
-                print('Hash rate: %.2f MH/s, Accepted: %d, Rejected: %d' % (hashrate, accepted_in_2s, rejected_in_2s))
+                print(f'Hash rate: {hashrate:.2f} MH/s, Accepted: {accepted_in_2s}, Rejected: {rejected_in_2s}')
             else:
-                print('Hash rate: %.2f MH/s, Accepted: %d, Rejected: %d, server ping timeout' % (hashrate, accepted_in_2s, rejected_in_2s))
+                print(f'Hash rate: {hashrate:.2f} MH/s, Accepted: {accepted_in_2s}, Rejected: {rejected_in_2s}, server ping timeout')
     except:
         time.sleep(0.1)
         print('Terminating processes...')
