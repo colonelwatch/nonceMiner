@@ -2,6 +2,7 @@ import socket
 import urllib.request
 import time
 import datetime
+import threading
 import multiprocessing as mp
 from ctypes import c_char
 
@@ -55,17 +56,35 @@ def process_mineDUCO(hashcount, accepted, rejected, job_request_bytes):
         soc.close()
         return
 
-def ping_server():
-    soc = socket.socket()
-    soc.settimeout(2.0)
-    try:
-        soc.connect((pool_ip, pool_port))
-        soc.recv(3)
-        soc.close()
-        return True
-    except:
-        soc.close()
-        return False
+server_is_online = True
+# Attempts to find the server and updates server_is_online flag on success or fail
+def thread_monitor_server():
+    global server_is_online
+    while True:
+        soc = socket.socket()
+        soc.settimeout(2.0)
+        try:
+            soc.connect((pool_ip, pool_port))
+            soc.recv(3)
+            soc.close()
+            server_is_online = True
+        except:
+            soc.close()
+            server_is_online = False
+        time.sleep(2)
+
+# Checks for completed threads (either by exception or by exceeding auto-restart time) and restarts them
+def thread_autorestarter(p_list, hashcount, accepted, rejected, job_request_bytes):
+    while True:
+        # Will only restart processes when the server is alive so it doesn't get overwhelmed
+        if server_is_online:
+            for i in range(len(p_list)):
+                if not p_list[i].is_alive():
+                    p_list[i].join()
+                    p_list[i] = mp.Process(target=process_mineDUCO, args=(hashcount, accepted, rejected, job_request_bytes))
+                    p_list[i].start()
+                    time.sleep(4/N_PROCESSES)
+        time.sleep(2)
 
 if __name__ == '__main__':
     mp.freeze_support() # Required for conversion to exe
@@ -81,12 +100,14 @@ if __name__ == '__main__':
     rejected = mp.Value('i', 0, lock=True)
     job_request_bytes = mp.Array(c_char, b'JOB,'+USERNAME.encode('utf-8'), lock=False)
 
+    # Starts processes and prepares list for thread_autorestarter to handle
     p_list = []
     for i in range(N_PROCESSES):
         p = mp.Process(target=process_mineDUCO, args=(hashcount, accepted, rejected, job_request_bytes))
         p.start()
         p_list.append(p)
         time.sleep(4/N_PROCESSES)
+    
     try:
         # Reset counters now that all processes are contributing
         with hashcount.get_lock():
@@ -97,9 +118,15 @@ if __name__ == '__main__':
             rejected.value = 0
         past_time = time.time()
 
+        # Starts threads that manage auxiliary functions
+        threading.Thread(target=thread_monitor_server, daemon=True).start()
+        threading.Thread(target=thread_autorestarter, args=(p_list, hashcount, accepted, rejected, job_request_bytes), daemon=True)
+
+        # Main process runs the terminal output and calculates hashrate
         while True:
             time.sleep(2)
 
+            # Gets counter values and resets them
             with hashcount.get_lock():
                 hash_in_2s = hashcount.value
                 hashcount.value = 0
@@ -110,21 +137,17 @@ if __name__ == '__main__':
                 rejected_in_2s = rejected.value
                 rejected.value = 0
             
+            # Run-time of loop NOT guaranteed to be 2 seconds, so we keep time manually
             current_time = time.time()
             hashrate = hash_in_2s/1000000/(current_time-past_time)
             past_time = current_time
             
             print(datetime.datetime.now().strftime("%H:%M:%S"), end='  ')
-            if(ping_server()):
-                for i in range(len(p_list)):
-                    if(not p_list[i].is_alive()):
-                        p_list[i].join()
-                        p_list[i] = mp.Process(target=process_mineDUCO, args=(hashcount, accepted, rejected, job_request_bytes))
-                        p_list[i].start()
-                        time.sleep(4/N_PROCESSES)
-                print(f'Hash rate: {hashrate:.2f} MH/s, Accepted: {accepted_in_2s}, Rejected: {rejected_in_2s}')
+            print(f'Hash rate: {hashrate:.2f} MH/s, Accepted: {accepted_in_2s}, Rejected: {rejected_in_2s}', end='')
+            if server_is_online:
+                print()
             else:
-                print(f'Hash rate: {hashrate:.2f} MH/s, Accepted: {accepted_in_2s}, Rejected: {rejected_in_2s}, server ping timeout')
+                print(', server ping timeout')
     except:
         time.sleep(0.1)
         print('Terminating processes...')
