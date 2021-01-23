@@ -11,7 +11,7 @@ pool_location = urllib.request.urlopen(serverip).read().decode().splitlines()
 pool_ip = pool_location[0]
 pool_port = int(pool_location[1])
 
-def process_mineDUCO(hashcount, job_request_bytes):
+def process_mineDUCO(hashcount, accepted, rejected, job_request_bytes):
     soc = socket.socket()
     soc.settimeout(16.0)
     try:
@@ -34,10 +34,17 @@ def process_mineDUCO(hashcount, job_request_bytes):
 
             # Send result of hashing algorithm to pool along with metadata
             soc.send(('%i,%i,nonceMiner_%s'%(result, local_hashrate, MINER_VERSION)).encode('utf-8'))
-            soc.recv(1024) # Receive feedback, don't bother decoding
+            feedback_bytes = soc.recv(1024) # Receive feedback, don't bother decoding
             
+            # Update counters according to feedback
             with hashcount.get_lock():
                 hashcount.value += result
+            if feedback_bytes == b'GOOD' or feedback_bytes == b'BLOCK':
+                with accepted.get_lock():
+                    accepted.value += 1
+            else:
+                with rejected.get_lock():
+                    rejected.value += 1
         soc.close()
         return
     except:
@@ -66,22 +73,39 @@ if __name__ == '__main__':
     print('Starting processes...')
 
     hashcount = mp.Value('i', 0, lock=True)
+    accepted = mp.Value('i', 0, lock=True)
+    rejected = mp.Value('i', 0, lock=True)
     job_request_bytes = mp.Array(c_char, b'JOB,'+USERNAME.encode('utf-8'), lock=False)
+
     p_list = []
     for i in range(N_PROCESSES):
-        p = mp.Process(target=process_mineDUCO, args=(hashcount, job_request_bytes))
+        p = mp.Process(target=process_mineDUCO, args=(hashcount, accepted, rejected, job_request_bytes))
         p.start()
         p_list.append(p)
         time.sleep(4/N_PROCESSES)
     try:
-        with hashcount.get_lock(): hashcount.value = 0
+        # Reset counters now that all processes are contributing
+        with hashcount.get_lock():
+            hashcount.value = 0
+        with accepted.get_lock():
+            accepted.value = 0
+        with rejected.get_lock():
+            rejected.value = 0
         past_time = time.time()
+
         while True:
             time.sleep(2)
 
             with hashcount.get_lock():
                 hash_in_2s = hashcount.value
                 hashcount.value = 0
+            with accepted.get_lock():
+                accepted_in_2s = accepted.value
+                accepted.value = 0
+            with rejected.get_lock():
+                rejected_in_2s = rejected.value
+                rejected.value = 0
+            
             current_time = time.time()
             hashrate = hash_in_2s/1000000/(current_time-past_time)
             past_time = current_time
@@ -91,12 +115,12 @@ if __name__ == '__main__':
                 for i in range(len(p_list)):
                     if(not p_list[i].is_alive()):
                         p_list[i].join()
-                        p_list[i] = mp.Process(target=process_mineDUCO, args=(hashcount, job_request_bytes))
+                        p_list[i] = mp.Process(target=process_mineDUCO, args=(hashcount, accepted, rejected, job_request_bytes))
                         p_list[i].start()
                         time.sleep(4/N_PROCESSES)
-                print('Hash rate: %.2f MH/s' % hashrate)
+                print('Hash rate: %.2f MH/s, Accepted: %d, Rejected: %d' % (hashrate, accepted_in_2s, rejected_in_2s))
             else:
-                print('Hash rate: %.2f MH/s, server ping timeout' % hashrate)
+                print('Hash rate: %.2f MH/s, Accepted: %d, Rejected: %d, server ping timeout' % (hashrate, accepted_in_2s, rejected_in_2s))
     except:
         time.sleep(0.1)
         print('Terminating processes...')
