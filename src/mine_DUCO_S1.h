@@ -9,6 +9,10 @@
 //  char arrays are also okay because letters and numbers are encoded
 //  the same between UTF-8 and ASCII
 
+#ifdef __cplusplus  
+extern "C" { 
+#endif
+
 // private functions
 long _get_divisor(long x);
 
@@ -42,3 +46,7 @@ long mine_DUCO_S1_extend_cache(
     const unsigned char input_prefix[HASH_SIZE*2],
     const unsigned char target_hexdigest[HASH_SIZE*2],
     int difficulty);
+
+#ifdef __cplusplus 
+} 
+#endif 
