@@ -8,7 +8,7 @@ from ctypes import c_char
 
 import nonceMiner
 
-MINER_VERSION = "v1.1"
+MINER_VERSION = "v1.2"
 AUTO_RESTART_TIME = 30*60 # 30 minutes
 
 serverip = 'https://raw.githubusercontent.com/revoxhere/duino-coin/gh-pages/serverip.txt' 
