@@ -123,7 +123,7 @@ if __name__ == '__main__':
 
         # Starts threads that manage auxiliary functions
         threading.Thread(target=thread_monitor_server, daemon=True).start()
-        threading.Thread(target=thread_autorestarter, args=(p_list, hashcount, accepted, rejected, job_request_bytes), daemon=True)
+        threading.Thread(target=thread_autorestarter, args=(p_list, hashcount, accepted, rejected, job_request_bytes), daemon=True).start()
 
         # Main process runs the terminal output and calculates hashrate
         while True:
