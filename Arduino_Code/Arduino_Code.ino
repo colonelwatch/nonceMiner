@@ -10,7 +10,7 @@ void loop() {
     unsigned char prefix[40], target[40];
     Serial.readBytesUntil('\n', prefix, 42);
     Serial.readBytesUntil('\n', target, 42);
-    int diff = Serial.parseInt() / 100; // Difficulty is actually 100 times less for AVR jobs
+    int diff = Serial.parseInt();
     
     unsigned long StartTime = micros(); // Start time measurement
 
