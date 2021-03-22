@@ -66,10 +66,11 @@ int server_is_online = 1;
 int *local_hashrate; // Holds array of hashrates per thread
 int accepted = 0, rejected = 0;
 char username[128];
+char identifier[128];
 
 void* mining_routine(void* arg){
     int len, *local_hashrate = (int *)arg;
-    char buf[128], job_request[256];
+    char buf[256], job_request[256];
     int job_request_len = sprintf(job_request, "JOB,%s", username);
     TIMESTAMP_T t1, t0;
     while(1){
@@ -111,7 +112,7 @@ void* mining_routine(void* arg){
             *local_hashrate = nonce/tdelta_ms*1000;
             t0 = t1;
 
-            len = sprintf(buf, "%ld,%d,nonceMiner v1.3.0-alpha", nonce, *local_hashrate);
+            len = sprintf(buf, "%ld,%d,nonceMiner v1.3.0,%s", nonce, *local_hashrate, identifier);
             len = send(soc, buf, len, 0);
             if(len == -1) goto on_error;
 
@@ -170,13 +171,18 @@ int main(){
         puts("Invalid username, exiting...");
         return 0;
     }
+    printf("Enter identifier (\"None\" for no identifier): ");
+    if(scanf("%127s", identifier) != 1){
+        puts("Invalid identifier, exiting...");
+        return 0;
+    }
     printf("Enter # of threads: ");
     if(scanf("%d", &n_threads) != 1){
         puts("Invalid number of threads, exiting...");
         return 0;
     }
     
-    local_hashrate = calloc(n_threads*sizeof(int));
+    local_hashrate = calloc(n_threads, sizeof(int));
     THREAD_T *mining_threads = malloc(n_threads*sizeof(THREAD_T));
     puts("Starting threads...");
     for(int i = 0; i < n_threads; i++){
