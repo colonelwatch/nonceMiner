@@ -1,6 +1,1 @@
-mp_miner.spec
-nonceMiner.**
-src/nonceMiner.c
-__pycache__/**
-build/**
-dist/**
+bin/**

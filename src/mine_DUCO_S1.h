@@ -1,7 +1,5 @@
 #include <stdlib.h>
-#include <stdio.h>
-
-#include "sha1.h"
+#include <openssl/sha.h>
 
 #define HASH_SIZE 20
 
@@ -18,20 +16,20 @@ long _get_divisor(long x);
 
 // public functions
 void set_sha1_base(
-    SHA1_CTX *ctx_ptr,
+    SHA_CTX *ctx_ptr,
     const unsigned char input_prefix[HASH_SIZE*2]);
 
-SHA1_CTX update_sha1_base(
-    SHA1_CTX base_ctx,
+SHA_CTX update_sha1_base(
+    SHA_CTX base_ctx,
     const unsigned char byte);
 
 void modify_sha1_ctx(
-    SHA1_CTX *ctx_ptr,
+    SHA_CTX *ctx_ptr,
     long nonce);
 
 void complete_sha1_hash(
     unsigned char hash[HASH_SIZE],
-    SHA1_CTX *ctx_ptr);
+    SHA_CTX *ctx_ptr);
 
 int compare_hash(
     const unsigned char hex_digest[HASH_SIZE*2],
