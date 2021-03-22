@@ -28,10 +28,6 @@
     #define THREAD_T HANDLE // is type void*
     #define THREAD_CREATE(thread_ptr, func, arg_ptr) \
         *(thread_ptr) = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE) func, arg_ptr, 0, NULL)
-    #define MUTEX_T CRITICAL_SECTION
-    #define MUTEX_CREATE(mutex_ptr) InitializeCriticalSection(mutex_ptr)
-    #define MUTEX_LOCK(mutex_ptr) EnterCriticalSection(mutex_ptr)
-    #define MUTEX_UNLOCK(mutex_ptr) LeaveCriticalSection(mutex_ptr)
     // Timing defines
     #define TIMESTAMP_T long long
     #define GET_TIME(t_ptr) *(t_ptr) = GetTickCount64()
@@ -57,10 +53,6 @@
     // Threading defines
     #define THREAD_T pthread_t
     #define THREAD_CREATE(thread_ptr, func, arg_ptr) pthread_create(thread_ptr, NULL, func, arg_ptr)
-    #define MUTEX_T pthread_mutex_t
-    #define MUTEX_CREATE(mutex_ptr) pthread_mutex_init(mutex_ptr, NULL)
-    #define MUTEX_LOCK(mutex_ptr) pthread_mutex_lock(mutex_ptr)
-    #define MUTEX_UNLOCK(mutex_ptr) pthread_mutex_unlock(mutex_ptr)
     // Timing defines
     #define TIMESTAMP_T struct timespec
     #define GET_TIME(t_ptr) clock_gettime(CLOCK_MONOTONIC, t_ptr)
@@ -70,14 +62,13 @@
 
 #include "mine_DUCO_S1.h"
 
-MUTEX_T stats_lock;
 int server_is_online = 1;
-unsigned long hashcount = 0;
+int *local_hashrate; // Holds array of hashrates per thread
 int accepted = 0, rejected = 0;
 char username[128];
 
 void* mining_routine(void* arg){
-    int len;
+    int len, *local_hashrate = (int *)arg;
     char buf[128], job_request[256];
     int job_request_len = sprintf(job_request, "JOB,%s", username);
     TIMESTAMP_T t1, t0;
@@ -117,10 +108,10 @@ void* mining_routine(void* arg){
             
             GET_TIME(&t1);
             int tdelta_ms = DIFF_TIME_MS(&t1, &t0);
-            int local_hashrate = nonce/tdelta_ms*1000;
+            *local_hashrate = nonce/tdelta_ms*1000;
             t0 = t1;
 
-            len = sprintf(buf, "%ld,%d,nonceMiner v1.3.0-alpha", nonce, local_hashrate);
+            len = sprintf(buf, "%ld,%d,nonceMiner v1.3.0-alpha", nonce, *local_hashrate);
             len = send(soc, buf, len, 0);
             if(len == -1) goto on_error;
 
@@ -128,13 +119,8 @@ void* mining_routine(void* arg){
             if(len == -1 || len == 0) goto on_error;
             buf[len] = 0;
 
-            MUTEX_LOCK(&stats_lock);
-            if(strcmp(buf, "GOOD") || strcmp(buf, "BLOCK")){
-                accepted++;
-                hashcount += nonce;
-            }
+            if(strcmp(buf, "GOOD") || strcmp(buf, "BLOCK")) accepted++;
             else rejected++;
-            MUTEX_UNLOCK(&stats_lock);
         }
 
         on_error:
@@ -190,40 +176,31 @@ int main(){
         return 0;
     }
     
+    local_hashrate = calloc(n_threads*sizeof(int));
     THREAD_T *mining_threads = malloc(n_threads*sizeof(THREAD_T));
-    MUTEX_CREATE(&stats_lock);
     puts("Starting threads...");
     for(int i = 0; i < n_threads; i++){
-        THREAD_CREATE(&mining_threads[i], mining_routine, username);
+        THREAD_CREATE(&mining_threads[i], mining_routine, &local_hashrate[i]);
         SLEEP(1);
     }
     THREAD_T ping_thread;
     THREAD_CREATE(&ping_thread, ping_routine, NULL);
 
-    MUTEX_LOCK(&stats_lock);
-    hashcount = 0;
+    memset(local_hashrate, 0, sizeof(int));
     accepted = 0;
     rejected = 0;
-    MUTEX_UNLOCK(&stats_lock);
-    
-    TIMESTAMP_T t1, t0;
-    GET_TIME(&t0);
 
     while(1){
         SLEEP(2); // Never exactly two seconds, so we time it ourselves
-        GET_TIME(&t1);
-        int tdelta_ms = DIFF_TIME_MS(&t1, &t0);
-        t0 = t1;
         
-        MUTEX_LOCK(&stats_lock);
-        float megahash = (float)hashcount/tdelta_ms/1000;
+        int total_hashrate = 0;
+        for(int i = 0; i < n_threads; i++) total_hashrate += local_hashrate[i];
+        float megahash = (float)total_hashrate/1000000;
         int accepted_copy = accepted;
         int rejected_copy = rejected;
-        hashcount = 0;
         accepted = 0;
         rejected = 0;
-        MUTEX_UNLOCK(&stats_lock);
-
+        
         time_t ts_epoch = time(NULL);
         struct tm *ts_clock = localtime(&ts_epoch);
         printf("%02d:%02d:%02d", ts_clock->tm_hour, ts_clock->tm_min, ts_clock->tm_sec);
