@@ -8,23 +8,23 @@ long _get_divisor(long x){
 }
 
 void set_sha1_base(
-    SHA1_CTX *ctx_ptr,
+    SHA_CTX *ctx_ptr,
     const unsigned char input_prefix[HASH_SIZE*2])
 {
-    SHA1Init(ctx_ptr);
+    SHA1_Init(ctx_ptr);
     for (int i = 0; i < HASH_SIZE*2; i++)
-        SHA1Update(ctx_ptr, (const unsigned char*)&input_prefix[i], 1);
+        SHA1_Update(ctx_ptr, (const unsigned char*)&input_prefix[i], 1);
 }
 
-void modify_sha1_ctx(SHA1_CTX *ctx_ptr, long nonce){
+void modify_sha1_ctx(SHA_CTX *ctx_ptr, long nonce){
     for(long divisor = _get_divisor(nonce); divisor != 0; divisor /= 10){
         const unsigned char digit = (unsigned char)((nonce%(divisor*10))/divisor)+'0';
-        SHA1Update(ctx_ptr, &digit, 1);
+        SHA1_Update(ctx_ptr, &digit, 1);
     }
 }
 
-void complete_sha1_hash(unsigned char hash[HASH_SIZE], SHA1_CTX *ctx_ptr){
-    SHA1Final(hash, ctx_ptr); // Wipes context at ctx_ptr when complete
+void complete_sha1_hash(unsigned char hash[HASH_SIZE], SHA_CTX *ctx_ptr){
+    SHA1_Final(hash, ctx_ptr); // Wipes context at ctx_ptr when complete
 }
 
 int compare_hash(
@@ -44,13 +44,13 @@ long mine_DUCO_S1(
     const unsigned char target_hexdigest[HASH_SIZE*2],
     int difficulty)
 {
-    SHA1_CTX base_ctx;
+    SHA_CTX base_ctx;
     set_sha1_base(&base_ctx, input_prefix);
     long maximum = 100*difficulty+1;
     
     for(long i = 0; i < maximum; i++){
         unsigned char temp_hash[HASH_SIZE];
-        SHA1_CTX temp_ctx = base_ctx;
+        SHA_CTX temp_ctx = base_ctx;
         modify_sha1_ctx(&temp_ctx, i);
         complete_sha1_hash(temp_hash, &temp_ctx);
         if(compare_hash(target_hexdigest, temp_hash)) return i;
@@ -63,14 +63,14 @@ long mine_DUCO_S1_extend_cache(
     const unsigned char target_hexdigest[HASH_SIZE*2],
     int difficulty)
 {
-    SHA1_CTX base_ctx;
+    SHA_CTX base_ctx;
     set_sha1_base(&base_ctx, input_prefix);
     long maximum = 100*difficulty+1;
-    SHA1_CTX *cache_ctx = (SHA1_CTX*)malloc(maximum*sizeof(SHA1_CTX)/10);
+    SHA_CTX *cache_ctx = (SHA_CTX*)malloc(maximum*sizeof(SHA_CTX)/10);
     
     for(long i = 0; i < maximum; i++){
         unsigned char temp_hash[HASH_SIZE];
-        SHA1_CTX temp_ctx;
+        SHA_CTX temp_ctx;
         if(i < 10){
             temp_ctx = base_ctx;
             modify_sha1_ctx(&temp_ctx, i);
