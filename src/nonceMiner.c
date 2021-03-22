@@ -28,6 +28,10 @@
     #define THREAD_T HANDLE // is type void*
     #define THREAD_CREATE(thread_ptr, func, arg_ptr) \
         *(thread_ptr) = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE) func, arg_ptr, 0, NULL)
+    #define MUTEX_T CRITICAL_SECTION
+    #define MUTEX_CREATE(mutex_ptr) InitializeCriticalSection(mutex_ptr)
+    #define MUTEX_LOCK(mutex_ptr) EnterCriticalSection(mutex_ptr)
+    #define MUTEX_UNLOCK(mutex_ptr) LeaveCriticalSection(mutex_ptr)
     // Timing defines
     #define TIMESTAMP_T long long
     #define GET_TIME(t_ptr) *(t_ptr) = GetTickCount64()
@@ -53,6 +57,10 @@
     // Threading defines
     #define THREAD_T pthread_t
     #define THREAD_CREATE(thread_ptr, func, arg_ptr) pthread_create(thread_ptr, NULL, func, arg_ptr)
+    #define MUTEX_T pthread_mutex_t
+    #define MUTEX_CREATE(mutex_ptr) pthread_mutex_init(mutex_ptr, NULL)
+    #define MUTEX_LOCK(mutex_ptr) pthread_mutex_lock(mutex_ptr)
+    #define MUTEX_UNLOCK(mutex_ptr) pthread_mutex_unlock(mutex_ptr)
     // Timing defines
     #define TIMESTAMP_T struct timespec
     #define GET_TIME(t_ptr) clock_gettime(CLOCK_MONOTONIC, t_ptr)
@@ -62,8 +70,8 @@
 
 #include "mine_DUCO_S1.h"
 
+MUTEX_T count_lock; // Protects access to shares counters
 int server_is_online = 1;
-int *local_hashrate; // Holds array of hashrates per thread
 int accepted = 0, rejected = 0;
 char username[128];
 char identifier[128];
@@ -107,6 +115,7 @@ void* mining_routine(void* arg){
 
             SLEEP(1);
             
+            // Assignment to *local_hashrate is generally atomic, no mutex needed
             GET_TIME(&t1);
             int tdelta_ms = DIFF_TIME_MS(&t1, &t0);
             *local_hashrate = nonce/tdelta_ms*1000;
@@ -120,12 +129,16 @@ void* mining_routine(void* arg){
             if(len == -1 || len == 0) goto on_error;
             buf[len] = 0;
 
+            // Increments are not atomic, requiring mutexes
+            MUTEX_LOCK(&count_lock);
             if(strcmp(buf, "GOOD") || strcmp(buf, "BLOCK")) accepted++;
             else rejected++;
+            MUTEX_UNLOCK(&count_lock);
         }
 
         on_error:
         CLOSE(soc);
+        *local_hashrate = 0; // Zero out hashrate since the thread is not active
         do{
         SLEEP(2); // Does not attempt reconnect if server is not online
         }while(!server_is_online);
@@ -182,8 +195,9 @@ int main(){
         return 0;
     }
     
-    local_hashrate = calloc(n_threads, sizeof(int));
+    int *local_hashrate = calloc(n_threads, sizeof(int));
     THREAD_T *mining_threads = malloc(n_threads*sizeof(THREAD_T));
+    MUTEX_CREATE(&count_lock);
     puts("Starting threads...");
     for(int i = 0; i < n_threads; i++){
         THREAD_CREATE(&mining_threads[i], mining_routine, &local_hashrate[i]);
@@ -191,10 +205,13 @@ int main(){
     }
     THREAD_T ping_thread;
     THREAD_CREATE(&ping_thread, ping_routine, NULL);
-
+    
+    // Zeroes out reported work done while starting up threads
     memset(local_hashrate, 0, sizeof(int));
+    MUTEX_LOCK(&count_lock);
     accepted = 0;
     rejected = 0;
+    MUTEX_UNLOCK(&count_lock);
 
     while(1){
         SLEEP(2); // Never exactly two seconds, so we time it ourselves
@@ -202,11 +219,14 @@ int main(){
         int total_hashrate = 0;
         for(int i = 0; i < n_threads; i++) total_hashrate += local_hashrate[i];
         float megahash = (float)total_hashrate/1000000;
+
+        MUTEX_LOCK(&count_lock);
         int accepted_copy = accepted;
         int rejected_copy = rejected;
         accepted = 0;
         rejected = 0;
-        
+        MUTEX_UNLOCK(&count_lock);
+
         time_t ts_epoch = time(NULL);
         struct tm *ts_clock = localtime(&ts_epoch);
         printf("%02d:%02d:%02d", ts_clock->tm_hour, ts_clock->tm_min, ts_clock->tm_sec);
