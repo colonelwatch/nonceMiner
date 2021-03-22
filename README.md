@@ -7,7 +7,7 @@ Aside from server bottlenecks, my i7-8550U averaged 22 to 25MH/s. In other words
 This program used to be written in Python with some C wrapped in Cython, but I have since rewritten it in pure C with native cross-platform compatibility.
 
 ## Running
-The binary is dependent on OpenSSL. The light binary is availible for Windows on [slproweb.com](https://slproweb.com/products/Win32OpenSSL.html), and this usually comes pre-installed on Linux.
+The nonceMiner binary is dependent on OpenSSL. The OpenSSL light binary is availible for Windows on [slproweb.com](https://slproweb.com/products/Win32OpenSSL.html), and this usually comes pre-installed on Linux.
 
 ## Compiling
 I compiled this before in Windows 10 and WSL2 (Ubuntu 20.04 LTS), so results outside these environments may vary.
