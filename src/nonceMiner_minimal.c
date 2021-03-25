@@ -66,7 +66,7 @@ int main(){
         len = recv(soc, buf, 128, 0); // May take up to 10 seconds as of server v2.2!
         buf[len] = 0;
 
-        if(strcmp(buf, "GOOD") || strcmp(buf, "BLOCK"))
+        if(!strcmp(buf, "GOOD") || !strcmp(buf, "BLOCK"))
             printf("Accepted share %ld Difficulty %d\n", nonce, diff);
         else
             printf("Rejected share %ld Difficulty %d\n", nonce, diff);

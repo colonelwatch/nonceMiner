@@ -131,7 +131,7 @@ void* mining_routine(void* arg){
 
             // Increments are not atomic, requiring mutexes
             MUTEX_LOCK(&count_lock);
-            if(strcmp(buf, "GOOD") || strcmp(buf, "BLOCK")) accepted++;
+            if(!strcmp(buf, "GOOD") || !strcmp(buf, "BLOCK")) accepted++;
             else rejected++;
             MUTEX_UNLOCK(&count_lock);
         }
