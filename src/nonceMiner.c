@@ -119,7 +119,7 @@ void* mining_routine(void* arg){
             *local_hashrate = nonce/tdelta_ms*1000;
             t0 = t1;
 
-            len = sprintf(buf, "%ld,%d,nonceMiner v1.3.0,%s", nonce, *local_hashrate, identifier);
+            len = sprintf(buf, "%ld,%d,nonceMiner v1.3.1,%s", nonce, *local_hashrate, identifier);
             len = send(soc, buf, len, 0);
             if(len == -1) goto on_error;
 
