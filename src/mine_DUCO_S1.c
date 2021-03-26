@@ -27,6 +27,14 @@ void modify_sha1_ctx_one_digit(SHA_CTX *ctx_ptr, int nonce){
     SHA1_Update(ctx_ptr, &digit, 1);
 }
 
+void modify_sha1_ctx_two_digits(SHA_CTX *ctx_ptr, int nonce){
+    const unsigned char digits[2] = {
+        nonce/10 + '0',
+        nonce%10 + '0'
+    };
+    SHA1_Update(ctx_ptr, &digits, 2);
+}
+
 void complete_sha1_hash(unsigned char hash[HASH_SIZE], SHA_CTX *ctx_ptr){
     SHA1_Final(hash, ctx_ptr); // Wipes context at ctx_ptr when complete
 }
@@ -70,7 +78,7 @@ long mine_DUCO_S1_extend_cache(
     SHA_CTX base_ctx;
     set_sha1_base(&base_ctx, input_prefix);
     long maximum = 100*difficulty+1;
-    SHA_CTX *cache_ctx = (SHA_CTX*)malloc(maximum*sizeof(SHA_CTX)/10);
+    SHA_CTX *cache_ctx = (SHA_CTX*)malloc(maximum*sizeof(SHA_CTX)/100);
     
     for(long i = 0; i < maximum; i++){
         unsigned char temp_hash[HASH_SIZE];
@@ -79,11 +87,15 @@ long mine_DUCO_S1_extend_cache(
             temp_ctx = base_ctx;
             modify_sha1_ctx_one_digit(&temp_ctx, i);
         }
-        else{
+        else if(i < maximum/10){
             temp_ctx = cache_ctx[i/10];
             modify_sha1_ctx_one_digit(&temp_ctx, i%10);
         }
-        if(i < maximum/10) cache_ctx[i] = temp_ctx;
+        else{
+            temp_ctx = cache_ctx[i/100];
+            modify_sha1_ctx_two_digits(&temp_ctx, i%100);
+        }
+        if(i < maximum/100) cache_ctx[i] = temp_ctx;
         complete_sha1_hash(temp_hash, &temp_ctx);
         if(compare_hash(target_hexdigest, temp_hash)){
             free(cache_ctx);
