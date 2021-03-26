@@ -12,8 +12,7 @@ void set_sha1_base(
     const unsigned char input_prefix[HASH_SIZE*2])
 {
     SHA1_Init(ctx_ptr);
-    for (int i = 0; i < HASH_SIZE*2; i++)
-        SHA1_Update(ctx_ptr, (const unsigned char*)&input_prefix[i], 1);
+    SHA1_Update(ctx_ptr, input_prefix, HASH_SIZE*2);
 }
 
 void modify_sha1_ctx(SHA_CTX *ctx_ptr, long nonce){
@@ -21,6 +20,11 @@ void modify_sha1_ctx(SHA_CTX *ctx_ptr, long nonce){
         const unsigned char digit = (unsigned char)((nonce%(divisor*10))/divisor)+'0';
         SHA1_Update(ctx_ptr, &digit, 1);
     }
+}
+
+void modify_sha1_ctx_one_digit(SHA_CTX *ctx_ptr, int nonce){
+    const unsigned char digit = nonce+'0';
+    SHA1_Update(ctx_ptr, &digit, 1);
 }
 
 void complete_sha1_hash(unsigned char hash[HASH_SIZE], SHA_CTX *ctx_ptr){
@@ -73,11 +77,11 @@ long mine_DUCO_S1_extend_cache(
         SHA_CTX temp_ctx;
         if(i < 10){
             temp_ctx = base_ctx;
-            modify_sha1_ctx(&temp_ctx, i);
+            modify_sha1_ctx_one_digit(&temp_ctx, i);
         }
         else{
             temp_ctx = cache_ctx[i/10];
-            modify_sha1_ctx(&temp_ctx, i%10);
+            modify_sha1_ctx_one_digit(&temp_ctx, i%10);
         }
         if(i < maximum/10) cache_ctx[i] = temp_ctx;
         complete_sha1_hash(temp_hash, &temp_ctx);

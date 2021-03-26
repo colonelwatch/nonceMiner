@@ -27,6 +27,10 @@ void modify_sha1_ctx(
     SHA_CTX *ctx_ptr,
     long nonce);
 
+void modify_sha1_ctx_one_digit(
+    SHA_CTX *ctx_ptr,
+    int nonce);
+
 void complete_sha1_hash(
     unsigned char hash[HASH_SIZE],
     SHA_CTX *ctx_ptr);
