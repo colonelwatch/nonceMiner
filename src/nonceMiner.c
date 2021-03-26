@@ -176,7 +176,7 @@ int main(){
     INIT_WINSOCK();
 
     int n_threads;
-    puts("Initializing nonceMiner v1.3.0...");
+    puts("Initializing nonceMiner v1.3.1...");
     printf("Enter username: ");
     if(scanf("%127s", username) != 1){
         puts("Invalid username, exiting...");
