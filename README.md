@@ -6,10 +6,13 @@ Aside from server bottlenecks, my i7-8550U averaged 22 to 25MH/s. In other words
 
 This program used to be written in Python with some C wrapped in Cython, but I have since rewritten it in pure C with native cross-platform compatibility.
 
+## Running
+The nonceMiner binary is dependent on OpenSSL. The OpenSSL light binary is availible for Windows on [slproweb.com](https://slproweb.com/products/Win32OpenSSL.html), and this usually comes pre-installed on Linux.
+
 ## Compiling
 I compiled this before in Windows 10 and WSL2 (Ubuntu 20.04 LTS), so results outside these environments may vary.
 
-Prerequisites: `gcc` (MinGW on Windows), `libssl-dev` (at least a development OpenSSL binary in Windows, I used the [slproweb.com](https://slproweb.com/products/Win32OpenSSL.html) copy, *not the "light" version*)
+Prerequisites: `gcc` (MinGW on Windows), `libssl-dev` (at least a development OpenSSL binary in Windows, I used the [slproweb.com](https://slproweb.com/products/Win32OpenSSL.html) copy, *not the "light" binary*)
 
 1) Call `make nonceMiner` in the repo directory
 2) Execute `./bin/nonceMiner` in the repo directory, or pull the compiled binary from `bin`
