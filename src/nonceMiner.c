@@ -112,8 +112,6 @@ void* mining_routine(void* arg){
                 (const unsigned char*) &buf[41],
                 atoi((const char*) &buf[82])
             );
-
-            SLEEP(1);
             
             // Assignment to *local_hashrate is generally atomic, no mutex needed
             GET_TIME(&t1);

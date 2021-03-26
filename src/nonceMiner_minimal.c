@@ -58,8 +58,6 @@ int main(){
             diff
         );
 
-        SLEEP(1);
-
         len = sprintf(buf, "%ld", nonce);
         send(soc, buf, len, 0);
 
