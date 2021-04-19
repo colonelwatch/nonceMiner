@@ -25,7 +25,7 @@
 #endif
 
 #include "mine_DUCO_S1.h"
-#define USERNAME "revox"
+#define USERNAME "travelmode"
 
 int main(){
     INIT_WINSOCK();
