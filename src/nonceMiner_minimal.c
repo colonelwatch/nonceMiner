@@ -25,14 +25,14 @@
 #endif
 
 #include "mine_DUCO_S1.h"
-#define USERNAME "travelmode"
+#define USERNAME "revox"
 
 int main(){
     INIT_WINSOCK();
 
     int len;
     char buf[128], job_request[256];
-    int job_request_len = sprintf(job_request, "JOB,%s", USERNAME);
+    int job_request_len = sprintf(job_request, "JOB,%s,EXTREME", USERNAME);
 
     struct sockaddr_in server;
     server.sin_addr.s_addr = inet_addr("51.15.127.80");
@@ -58,13 +58,13 @@ int main(){
             diff
         );
 
-        len = sprintf(buf, "%ld", nonce);
+        len = sprintf(buf, "%ld\n", nonce);
         send(soc, buf, len, 0);
 
         len = recv(soc, buf, 128, 0); // May take up to 10 seconds as of server v2.2!
         buf[len] = 0;
 
-        if(!strcmp(buf, "GOOD") || !strcmp(buf, "BLOCK"))
+        if(!strcmp(buf, "GOOD\n") || !strcmp(buf, "BLOCK\n"))
             printf("Accepted share %ld Difficulty %d\n", nonce, diff);
         else
             printf("Rejected share %ld Difficulty %d\n", nonce, diff);

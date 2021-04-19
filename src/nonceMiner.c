@@ -79,7 +79,7 @@ char identifier[128];
 void* mining_routine(void* arg){
     int len, *local_hashrate = (int *)arg;
     char buf[256], job_request[256];
-    int job_request_len = sprintf(job_request, "JOB,%s", username);
+    int job_request_len = sprintf(job_request, "JOB,%s,EXTREME", username);
     TIMESTAMP_T t1, t0;
     while(1){
         struct sockaddr_in server;
@@ -119,7 +119,7 @@ void* mining_routine(void* arg){
             *local_hashrate = nonce/tdelta_ms*1000;
             t0 = t1;
 
-            len = sprintf(buf, "%ld,%d,nonceMiner v1.3.1,%s", nonce, *local_hashrate, identifier);
+            len = sprintf(buf, "%ld,%d,nonceMiner v1.3.1,%s\n", nonce, *local_hashrate, identifier);
             len = send(soc, buf, len, 0);
             if(len == -1) goto on_error;
 
@@ -129,7 +129,7 @@ void* mining_routine(void* arg){
 
             // Increments are not atomic, requiring mutexes
             MUTEX_LOCK(&count_lock);
-            if(!strcmp(buf, "GOOD") || !strcmp(buf, "BLOCK")) accepted++;
+            if(!strcmp(buf, "GOOD\n") || !strcmp(buf, "BLOCK\n")) accepted++;
             else rejected++;
             MUTEX_UNLOCK(&count_lock);
         }
