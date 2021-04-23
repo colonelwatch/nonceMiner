@@ -79,6 +79,10 @@ long mine_DUCO_S1_extend_cache(
     set_sha1_base(&base_ctx, input_prefix);
     long maximum = 100*difficulty+1;
     SHA_CTX *cache_ctx = (SHA_CTX*)malloc(maximum*sizeof(SHA_CTX)/100);
+
+    // If there is not enough memory, quietly use the basic optimization
+    // TODO: Alert the user if basic optimization is used
+    if(cache_ctx == NULL) return mine_DUCO_S1(input_prefix, target_hexdigest, difficulty);
     
     for(long i = 0; i < maximum; i++){
         unsigned char temp_hash[HASH_SIZE];
