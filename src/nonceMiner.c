@@ -119,7 +119,7 @@ void* mining_routine(void* arg){
             *local_hashrate = nonce/tdelta_ms*1000;
             t0 = t1;
 
-            len = sprintf(buf, "%ld,%d,nonceMiner v1.3.1,%s\n", nonce, *local_hashrate, identifier);
+            len = sprintf(buf, "%ld,%d,nonceMiner v1.3.3,%s\n", nonce, *local_hashrate, identifier);
             len = send(soc, buf, len, 0);
             if(len == -1) goto on_error;
 
@@ -176,7 +176,7 @@ int main(){
     INIT_WINSOCK();
 
     int n_threads;
-    puts("Initializing nonceMiner v1.3.1...");
+    puts("Initializing nonceMiner v1.3.3...");
     printf("Enter username: ");
     if(scanf("%127s", username) != 1){
         puts("Invalid username, exiting...");
