@@ -78,7 +78,8 @@ long mine_DUCO_S1_extend_cache(
     SHA_CTX base_ctx;
     set_sha1_base(&base_ctx, input_prefix);
     long maximum = 100*difficulty+1;
-    SHA_CTX *cache_ctx = (SHA_CTX*)malloc(maximum*sizeof(SHA_CTX)/100);
+    long cache_size = maximum/100;
+    SHA_CTX *cache_ctx = (SHA_CTX*)malloc(cache_size*sizeof(SHA_CTX));
     
     for(long i = 0; i < maximum; i++){
         unsigned char temp_hash[HASH_SIZE];
@@ -87,7 +88,7 @@ long mine_DUCO_S1_extend_cache(
             temp_ctx = base_ctx;
             modify_sha1_ctx_one_digit(&temp_ctx, i);
         }
-        else if(i < maximum/10){
+        else if(i < 10*cache_size){
             temp_ctx = cache_ctx[i/10];
             modify_sha1_ctx_one_digit(&temp_ctx, i%10);
         }
@@ -95,7 +96,7 @@ long mine_DUCO_S1_extend_cache(
             temp_ctx = cache_ctx[i/100];
             modify_sha1_ctx_two_digits(&temp_ctx, i%100);
         }
-        if(i < maximum/100) cache_ctx[i] = temp_ctx;
+        if(i < cache_size) cache_ctx[i] = temp_ctx;
         complete_sha1_hash(temp_hash, &temp_ctx);
         if(compare_hash(target_hexdigest, temp_hash)){
             free(cache_ctx);
