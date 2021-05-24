@@ -107,11 +107,26 @@ void* mining_routine(void* arg){
             if(len == -1 || len == 0) goto on_error; // Adds exit-on-disconnect
             buf[len] = 0;
 
-            long nonce = mine_DUCO_S1_extend_cache(
-                (const unsigned char*) &buf[0],
-                (const unsigned char*) &buf[41],
-                atoi((const char*) &buf[82])
-            );
+            int diff;
+            long nonce;
+            if(buf[40] == ','){ // If the prefix is a SHA1 hex digest (40 chars long)...
+                diff = atoi((const char*) &buf[82]);
+                nonce = mine_DUCO_S1_extend_cache(
+                    (const unsigned char*) &buf[0],
+                    40,
+                    (const unsigned char*) &buf[41],
+                    diff
+                );
+            }
+            else{ // Else the prefix is probably an XXHASH hex digest (16 chars long)...
+                diff = atoi((const char*) &buf[58]);
+                nonce = mine_DUCO_S1_extend_cache(
+                    (const unsigned char*) &buf[0],
+                    16,
+                    (const unsigned char*) &buf[17],
+                    diff
+                );
+            }
             
             GET_TIME(&t1);
             int tdelta_ms = DIFF_TIME_MS(&t1, &t0);

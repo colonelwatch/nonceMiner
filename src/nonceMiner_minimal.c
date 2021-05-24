@@ -51,12 +51,26 @@ int main(){
         len = recv(soc, buf, 128, 0);
         buf[len] = 0;
 
-        int diff = atoi((const char*) &buf[82]);
-        long nonce = mine_DUCO_S1_extend_cache(
-            (const unsigned char*) &buf[0],
-            (const unsigned char*) &buf[41],
-            diff
-        );
+        int diff;
+        long nonce;
+        if(buf[40] == ','){ // If the prefix is a SHA1 hex digest (40 chars long)...
+            diff = atoi((const char*) &buf[82]);
+            nonce = mine_DUCO_S1_extend_cache(
+                (const unsigned char*) &buf[0],
+                40,
+                (const unsigned char*) &buf[41],
+                diff
+            );
+        }
+        else{ // Else the prefix is probably an XXHASH hex digest (16 chars long)...
+            diff = atoi((const char*) &buf[58]);
+            nonce = mine_DUCO_S1_extend_cache(
+                (const unsigned char*) &buf[0],
+                16,
+                (const unsigned char*) &buf[17],
+                diff
+            );
+        }
 
         len = sprintf(buf, "%ld\n", nonce);
         send(soc, buf, len, 0);

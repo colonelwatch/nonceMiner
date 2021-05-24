@@ -9,10 +9,11 @@ long _get_divisor(long x){
 
 void set_sha1_base(
     SHA_CTX *ctx_ptr,
-    const unsigned char input_prefix[HASH_SIZE*2])
+    const unsigned char *input_prefix,
+    int prefix_length)
 {
     SHA1_Init(ctx_ptr);
-    SHA1_Update(ctx_ptr, input_prefix, HASH_SIZE*2);
+    SHA1_Update(ctx_ptr, input_prefix, prefix_length);
 }
 
 void modify_sha1_ctx(SHA_CTX *ctx_ptr, long nonce){
@@ -52,12 +53,13 @@ int compare_hash(
 }
 
 long mine_DUCO_S1(
-    const unsigned char input_prefix[HASH_SIZE*2],
+    const unsigned char *input_prefix,
+    int prefix_length,
     const unsigned char target_hexdigest[HASH_SIZE*2],
     int difficulty)
 {
     SHA_CTX base_ctx;
-    set_sha1_base(&base_ctx, input_prefix);
+    set_sha1_base(&base_ctx, input_prefix, prefix_length);
     long maximum = 100*difficulty+1;
     
     for(long i = 0; i < maximum; i++){
@@ -71,12 +73,13 @@ long mine_DUCO_S1(
 }
 
 long mine_DUCO_S1_extend_cache(
-    const unsigned char input_prefix[HASH_SIZE*2],
+    const unsigned char *input_prefix,
+    int prefix_length,
     const unsigned char target_hexdigest[HASH_SIZE*2],
     int difficulty)
 {
     SHA_CTX base_ctx;
-    set_sha1_base(&base_ctx, input_prefix);
+    set_sha1_base(&base_ctx, input_prefix, prefix_length);
     long maximum = 100*difficulty+1;
     long cache_size = maximum/100;
     SHA_CTX *cache_ctx = (SHA_CTX*)malloc(cache_size*sizeof(SHA_CTX));
