@@ -1,7 +1,7 @@
 ifeq ($(OS),Windows_NT)
-	libs := -lpthread -I"$(OPENSSL_ROOT_DIR)\include" -L"$(OPENSSL_ROOT_DIR)\lib" -llibcrypto -lws2_32
+	libs := -I"$(OPENSSL_ROOT_DIR)\include" -L"$(OPENSSL_ROOT_DIR)\lib" -llibcrypto -lws2_32
 else
-	libs := -lcrypto -lpthread
+	libs := -lcrypto -pthread
 endif
 
 nonceMiner: src/nonceMiner.c src/mine_DUCO_S1.h src/mine_DUCO_S1.c | bin
