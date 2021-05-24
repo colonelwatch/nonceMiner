@@ -93,6 +93,7 @@ void* mining_routine(void* arg){
         len = connect(soc, (struct sockaddr *)&server, sizeof(server));
         if(len == -1) goto on_error;
 
+        // Receives server version
         len = recv(soc, buf, 3, 0);
         if(len == -1 || len == 0) goto on_error;
         buf[len] = 0;
@@ -100,9 +101,11 @@ void* mining_routine(void* arg){
         GET_TIME(&t0);
 
         while(1){
+            // Sends job request
             len = send(soc, job_request, job_request_len, 0);
             if(len == -1) goto on_error; // Boilerplate exit-on-failure line
 
+            // Receives job string
             len = recv(soc, buf, 128, 0);
             if(len == -1 || len == 0) goto on_error; // Adds exit-on-disconnect
             buf[len] = 0;
@@ -128,19 +131,22 @@ void* mining_routine(void* arg){
                 );
             }
             
+            // Records time-to-solve for calculating hashrate later
             GET_TIME(&t1);
             int tdelta_ms = DIFF_TIME_MS(&t1, &t0);
             t0 = t1;
 
+            // Generates and sends result string
             len = sprintf(buf, "%ld,%d,nonceMiner v1.3.3,%s\n", nonce, *local_hashrate, identifier);
             len = send(soc, buf, len, 0);
             if(len == -1) goto on_error;
 
+            // Receives response
             len = recv(soc, buf, 128, 0); // May take up to 10 seconds as of server v2.2!
             if(len == -1 || len == 0) goto on_error;
             buf[len] = 0;
 
-            // Increments are not atomic, requiring mutexes
+            // Mutex section for updating shared statistics
             MUTEX_LOCK(&count_lock);
             *local_hashrate = nonce/tdelta_ms*1000;
             if(!strcmp(buf, "GOOD\n") || !strcmp(buf, "BLOCK\n")) accepted++;
@@ -157,6 +163,7 @@ void* mining_routine(void* arg){
     }
 }
 
+// Tests server connection by receiving server version with a timeout on the transaction
 void* ping_routine(void *arg){
     int len;
     char buf[128];
@@ -226,14 +233,14 @@ int main(){
     MUTEX_UNLOCK(&count_lock);
 
     while(1){
-        SLEEP(2); // Never exactly two seconds, so we time it ourselves
+        SLEEP(2);
         
         int total_hashrate = 0;
         for(int i = 0; i < n_threads; i++) total_hashrate += local_hashrate[i];
         float megahash = (float)total_hashrate/1000000;
 
         MUTEX_LOCK(&count_lock);
-        int accepted_copy = accepted;
+        int accepted_copy = accepted; // Takes copies to keep mutex section short
         int rejected_copy = rejected;
         accepted = 0;
         rejected = 0;

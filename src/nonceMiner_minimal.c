@@ -42,13 +42,14 @@ int main(){
 
     len = connect(soc, (struct sockaddr *)&server, sizeof(server));
 
+    // Receives the server version
     len = recv(soc, buf, 3, 0);
     buf[len] = 0;
 
     while(1){
-        send(soc, job_request, job_request_len, 0);
+        send(soc, job_request, job_request_len, 0); // Sends job request
 
-        len = recv(soc, buf, 128, 0);
+        len = recv(soc, buf, 128, 0); // Receives job string
         buf[len] = 0;
 
         int diff;
@@ -72,9 +73,11 @@ int main(){
             );
         }
 
+        // Generates and sends result string
         len = sprintf(buf, "%ld\n", nonce);
         send(soc, buf, len, 0);
 
+        // Receives response
         len = recv(soc, buf, 128, 0); // May take up to 10 seconds as of server v2.2!
         buf[len] = 0;
 

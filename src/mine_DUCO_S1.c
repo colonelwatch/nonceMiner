@@ -1,7 +1,7 @@
 #include "mine_DUCO_S1.h"
 
 long _get_divisor(long x){
-    if(x == 0) return 1; // In case a single zero digit is recieved
+    if(x == 0) return 1; // In case a single zero digit is received
     long temp = 1;
     while(x >= temp) temp *= 10;
     return temp / 10;
@@ -45,6 +45,7 @@ int compare_hash(
     const unsigned char byte_digest[HASH_SIZE])
 {
     for(int i = 0; i < HASH_SIZE; i++){
+        // Converts from byte to hexadecimal
         char msb = "0123456789abcdef"[byte_digest[i]>>4],
              lsb = "0123456789abcdef"[byte_digest[i]&0x0f];
         if(msb != hex_digest[2*i] || lsb != hex_digest[2*i+1]) return 0;
@@ -87,19 +88,19 @@ long mine_DUCO_S1_extend_cache(
     for(long i = 0; i < maximum; i++){
         unsigned char temp_hash[HASH_SIZE];
         SHA_CTX temp_ctx;
-        if(i < 10){
+        if(i < 10){ // If nothing but the context with prefix is cached yet...
             temp_ctx = base_ctx;
             modify_sha1_ctx_one_digit(&temp_ctx, i);
         }
-        else if(i < 10*cache_size){
+        else if(i < 10*cache_size){ // If context with nonce upper digits (tens and beyond) is cached...
             temp_ctx = cache_ctx[i/10];
             modify_sha1_ctx_one_digit(&temp_ctx, i%10);
         }
-        else{
+        else{ // If context with nonce upper digits (hundreds and beyond) is cached...
             temp_ctx = cache_ctx[i/100];
             modify_sha1_ctx_two_digits(&temp_ctx, i%100);
         }
-        if(i < cache_size) cache_ctx[i] = temp_ctx;
+        if(i < cache_size) cache_ctx[i] = temp_ctx; // Cache the SHA1 context
         complete_sha1_hash(temp_hash, &temp_ctx);
         if(compare_hash(target_hexdigest, temp_hash)){
             free(cache_ctx);
