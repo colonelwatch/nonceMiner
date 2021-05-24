@@ -153,7 +153,7 @@ void* ping_routine(void *arg){
         server.sin_port = htons(2811);
         unsigned int soc = socket(PF_INET, SOCK_STREAM, 0);
         
-        SET_TIMEOUT(soc, 2);
+        SET_TIMEOUT(soc, 16);
         
         len = connect(soc, (struct sockaddr *)&server, sizeof(server));
         if(len == -1) goto on_error;
