@@ -113,10 +113,8 @@ void* mining_routine(void* arg){
                 atoi((const char*) &buf[82])
             );
             
-            // Assignment to *local_hashrate is generally atomic, no mutex needed
             GET_TIME(&t1);
             int tdelta_ms = DIFF_TIME_MS(&t1, &t0);
-            *local_hashrate = nonce/tdelta_ms*1000;
             t0 = t1;
 
             len = sprintf(buf, "%ld,%d,nonceMiner v1.3.3,%s\n", nonce, *local_hashrate, identifier);
@@ -129,6 +127,7 @@ void* mining_routine(void* arg){
 
             // Increments are not atomic, requiring mutexes
             MUTEX_LOCK(&count_lock);
+            *local_hashrate = nonce/tdelta_ms*1000;
             if(!strcmp(buf, "GOOD\n") || !strcmp(buf, "BLOCK\n")) accepted++;
             else rejected++;
             MUTEX_UNLOCK(&count_lock);
@@ -205,8 +204,8 @@ int main(){
     THREAD_CREATE(&ping_thread, ping_routine, NULL);
     
     // Zeroes out reported work done while starting up threads
-    memset(local_hashrate, 0, sizeof(int));
     MUTEX_LOCK(&count_lock);
+    memset(local_hashrate, 0, sizeof(int));
     accepted = 0;
     rejected = 0;
     MUTEX_UNLOCK(&count_lock);
