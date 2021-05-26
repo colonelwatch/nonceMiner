@@ -33,7 +33,7 @@ void modify_sha1_ctx_two_digits(SHA_CTX *ctx_ptr, int nonce){
         nonce/10 + '0',
         nonce%10 + '0'
     };
-    SHA1_Update(ctx_ptr, &digits, 2);
+    SHA1_Update(ctx_ptr, digits, 2);
 }
 
 void complete_sha1_hash(unsigned char hash[HASH_SIZE], SHA_CTX *ctx_ptr){
