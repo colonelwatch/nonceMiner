@@ -73,6 +73,31 @@ long mine_DUCO_S1(
     return -1;
 }
 
+long mine_DUCO_S1_lookup(
+    const unsigned char *input_prefix,
+    int prefix_length,
+    const unsigned char target_hexdigest[HASH_SIZE*2],
+    int difficulty)
+{
+    SHA_CTX base_ctx;
+    set_sha1_base(&base_ctx, input_prefix, prefix_length);
+    long maximum = 100*difficulty+1;
+
+    struct counter_state state;
+    init_counter_state(&state);
+    for(long i = 0; i < maximum; i++){
+        unsigned char temp_hash[HASH_SIZE];
+        SHA_CTX temp_ctx = base_ctx;
+        char temp_buf[12];
+        int n_digits = counter_to_string(temp_buf, &state);
+        SHA1_Update(&temp_ctx, temp_buf, n_digits);
+        complete_sha1_hash(temp_hash, &temp_ctx);
+        if(compare_hash(target_hexdigest, temp_hash)) return i;
+        increment_counter(&state);
+    }
+    return -1;
+}
+
 long mine_DUCO_S1_extend_cache(
     const unsigned char *input_prefix,
     int prefix_length,

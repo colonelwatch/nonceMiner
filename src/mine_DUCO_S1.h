@@ -1,6 +1,8 @@
 #include <stdlib.h>
 #include <openssl/sha.h>
 
+#include "counter.h"
+
 #define HASH_SIZE 20
 
 // Unsigned char is used here to align with Python UTF-8 encoding, but 
@@ -95,6 +97,12 @@ int compare_hash(
  *  target hex digest.
  * */
 long mine_DUCO_S1(
+    const unsigned char *input_prefix,
+    int prefix_length,
+    const unsigned char target_hexdigest[HASH_SIZE*2],
+    int difficulty);
+
+long mine_DUCO_S1_lookup(
     const unsigned char *input_prefix,
     int prefix_length,
     const unsigned char target_hexdigest[HASH_SIZE*2],

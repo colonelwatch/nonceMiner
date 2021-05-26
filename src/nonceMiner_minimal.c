@@ -56,7 +56,7 @@ int main(){
         long nonce;
         if(buf[40] == ','){ // If the prefix is a SHA1 hex digest (40 chars long)...
             diff = atoi((const char*) &buf[82]);
-            nonce = mine_DUCO_S1_extend_cache(
+            nonce = mine_DUCO_S1_lookup(
                 (const unsigned char*) &buf[0],
                 40,
                 (const unsigned char*) &buf[41],
@@ -65,7 +65,7 @@ int main(){
         }
         else{ // Else the prefix is probably an XXHASH hex digest (16 chars long)...
             diff = atoi((const char*) &buf[58]);
-            nonce = mine_DUCO_S1_extend_cache(
+            nonce = mine_DUCO_S1_lookup(
                 (const unsigned char*) &buf[0],
                 16,
                 (const unsigned char*) &buf[17],
