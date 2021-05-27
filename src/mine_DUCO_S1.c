@@ -88,9 +88,7 @@ long mine_DUCO_S1_lookup(
     for(long i = 0; i < maximum; i++){
         unsigned char temp_hash[HASH_SIZE];
         SHA_CTX temp_ctx = base_ctx;
-        char temp_buf[12];
-        int n_digits = counter_to_string(temp_buf, &state);
-        SHA1_Update(&temp_ctx, temp_buf, n_digits);
+        SHA1_Update(&temp_ctx, state.buf+12-state.length, state.length);
         complete_sha1_hash(temp_hash, &temp_ctx);
         if(compare_hash(target_hexdigest, temp_hash)) return i;
         increment_counter(&state);
