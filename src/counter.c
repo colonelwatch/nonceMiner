@@ -22,45 +22,52 @@ void increment_counter(struct counter_state *state){
         state->upper_digits += 1;
         state->middle_digits = 0;
         state->lower_digits = 0;
-        lookup_4_digits(state->buf, state->upper_digits);
-        lookup_4_digits(state->buf+4, 0);
-        lookup_4_digits(state->buf+8, 0);
+        sprint_4_digits(state->buf, state->upper_digits);
+        sprint_4_digits(state->buf+4, 0);
+        sprint_4_digits(state->buf+8, 0);
     }
     else if(state->lower_digits == 9999){
         state->middle_digits += 1;
         state->lower_digits = 0;
-        lookup_4_digits(state->buf+4, state->middle_digits);
-        lookup_4_digits(state->buf+8, 0);
+        sprint_4_digits(state->buf+4, state->middle_digits);
+        sprint_4_digits(state->buf+8, 0);
     }
     else{
         state->lower_digits += 1;
-        lookup_4_digits(state->buf+8, state->lower_digits);
+        sprint_4_digits(state->buf+8, state->lower_digits);
     }
     
     state->as_long_integer += 1;
-
-    // Balanced search tree
-    if(state->as_long_integer < 100000)
-        if(state->as_long_integer < 1000)
-            if(state->as_long_integer < 100)
-                if(state->as_long_integer < 10) state->length = 1;
-                else state->length = 2;
-            else state->length = 3;
-        else
-            if(state->as_long_integer < 10000) state->length = 4;
-            else state->length = 5;
-    else
-        if(state->as_long_integer < 10000000)
-            if(state->as_long_integer < 1000000) state->length = 6;
-            else state->length = 7;
-        else
-            if(state->as_long_integer < 100000000) state->length = 8;
-            else
-                if(state->as_long_integer < 1000000000) state->length = 9;
-                else state->length = 10;
+    state->length = count_digits(state->as_long_integer);
 }
 
-void lookup_4_digits(char *buf, int num){
+int count_digits(long num){
+    // Balanced search tree
+    if(num < 100000)
+        if(num < 1000)
+            if(num < 100)
+                if(num < 10) return 1;
+                else return 2;
+            else return 3;
+        else
+            if(num < 10000) return 4;
+            else return 5;
+    else
+        if(num < 10000000)
+            if(num < 1000000) return 6;
+            else return 7;
+        else
+            if(num < 100000000) return 8;
+            else
+                if(num < 1000000000) return 9;
+                else return 10;
+}
+
+void sprint_4_digits(char *buf, int num){
+    memcpy(buf, lookup_4_digits(num), 4);
+}
+
+const char* lookup_4_digits(int num){
     static const char table[10000][5] = {
         "0000","0001","0002","0003","0004","0005","0006","0007","0008","0009",
         "0010","0011","0012","0013","0014","0015","0016","0017","0018","0019",
@@ -1063,6 +1070,5 @@ void lookup_4_digits(char *buf, int num){
         "9980","9981","9982","9983","9984","9985","9986","9987","9988","9989",
         "9990","9991","9992","9993","9994","9995","9996","9997","9998","9999",
     };
-
-    memcpy(buf, table[num], 4);
+    return table[num];
 }

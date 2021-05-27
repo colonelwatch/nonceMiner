@@ -13,4 +13,6 @@ void init_counter_state(struct counter_state *state);
 int counter_to_string(char *buf, struct counter_state *state);
 void increment_counter(struct counter_state *state);
 
-void lookup_4_digits(char *buf, int num);
+int count_digits(long num);
+void sprint_4_digits(char *buf, int num);
+const char *lookup_4_digits(int num);
