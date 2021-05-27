@@ -84,14 +84,12 @@ long mine_DUCO_S1_lookup(
     long maximum = 100*difficulty+1;
 
     struct counter_state state;
-    init_counter_state(&state);
-    for(long i = 0; i < maximum; i++){
+    for(init_counter_state(&state); state.as_long_integer < maximum; increment_counter(&state)){
         unsigned char temp_hash[HASH_SIZE];
         SHA_CTX temp_ctx = base_ctx;
         SHA1_Update(&temp_ctx, state.buf+12-state.length, state.length);
         complete_sha1_hash(temp_hash, &temp_ctx);
-        if(compare_hash(target_hexdigest, temp_hash)) return i;
-        increment_counter(&state);
+        if(compare_hash(target_hexdigest, temp_hash)) return state.as_long_integer;
     }
     return -1;
 }
