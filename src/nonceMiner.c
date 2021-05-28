@@ -114,7 +114,7 @@ void* mining_routine(void* arg){
             long nonce;
             if(buf[40] == ','){ // If the prefix is a SHA1 hex digest (40 chars long)...
                 diff = atoi((const char*) &buf[82]);
-                nonce = mine_DUCO_S1_lookup(
+                nonce = mine_DUCO_S1(
                     (const unsigned char*) &buf[0],
                     40,
                     (const unsigned char*) &buf[41],
@@ -123,7 +123,7 @@ void* mining_routine(void* arg){
             }
             else{ // Else the prefix is probably an XXHASH hex digest (16 chars long)...
                 diff = atoi((const char*) &buf[58]);
-                nonce = mine_DUCO_S1_lookup(
+                nonce = mine_DUCO_S1(
                     (const unsigned char*) &buf[0],
                     16,
                     (const unsigned char*) &buf[17],

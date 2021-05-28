@@ -11,12 +11,6 @@ void init_counter_state(struct counter_state *state){
     state->length = 1;
 }
 
-int counter_to_string(char *buf, struct counter_state *state){
-    memcpy(buf, state->buf+12-state->length, state->length);
-    buf[state->length] = '\0';
-    return state->length;
-}
-
 void increment_counter(struct counter_state *state){
     if(state->middle_digits == 9999 && state->lower_digits == 9999){
         state->upper_digits += 1;

@@ -10,7 +10,6 @@ struct counter_state{
 };
 
 void init_counter_state(struct counter_state *state);
-int counter_to_string(char *buf, struct counter_state *state);
 void increment_counter(struct counter_state *state);
 
 int count_digits(long num);
