@@ -197,17 +197,28 @@ int main(){
     INIT_WINSOCK();
 
     int n_threads;
+    char *newline_ptr;
+
     puts("Initializing nonceMiner v1.4.0...");
+    
     printf("Enter username: ");
-    if(scanf("%127s", username) != 1){
+    fgets(username, 127, stdin);
+    newline_ptr = strchr(username, '\n');
+    if(newline_ptr == NULL || newline_ptr == &(username[0])){ // Exits on string too long or empty
         puts("Invalid username, exiting...");
         return 0;
     }
+    else *newline_ptr = '\0'; // Else terminate the string without the newline
+
     printf("Enter identifier (\"None\" for no identifier): ");
-    if(scanf("%127s", identifier) != 1){
+    fgets(identifier, 127, stdin);
+    newline_ptr = strchr(identifier, '\n');
+    if(newline_ptr == NULL || newline_ptr == &(identifier[0])){
         puts("Invalid identifier, exiting...");
         return 0;
     }
+    else *newline_ptr = '\0';
+
     printf("Enter # of threads: ");
     if(scanf("%d", &n_threads) != 1){
         puts("Invalid number of threads, exiting...");
