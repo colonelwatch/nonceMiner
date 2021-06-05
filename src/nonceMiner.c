@@ -137,7 +137,7 @@ void* mining_routine(void* arg){
             t0 = t1;
 
             // Generates and sends result string
-            len = sprintf(buf, "%ld,%d,nonceMiner v1.4.0,%s\n", nonce, *local_hashrate, identifier);
+            len = sprintf(buf, "%ld,%d,nonceMiner v1.4.1,%s\n", nonce, *local_hashrate, identifier);
             len = send(soc, buf, len, 0);
             if(len == -1) goto on_error;
 
@@ -197,7 +197,7 @@ int main(){
     int n_threads;
     char *newline_ptr, *buf_ptr;
 
-    puts("Initializing nonceMiner v1.4.0...");
+    puts("Initializing nonceMiner v1.4.1...");
     
     printf("Enter username: ");
     buf_ptr = fgets(username, 127, stdin);

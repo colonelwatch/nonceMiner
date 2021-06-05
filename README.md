@@ -2,7 +2,7 @@
 
 A quick casual project I wrote to try out applying hash midstate caching on the cryptocurrency project [duino-coin](https://github.com/revoxhere/duino-coin). The idea is to cache the SHA-1 algorithm's state after it processes the prefix (creating the midstate) then to finish the hash with the guessed nonces repeatedly, but while reusing the midstate, until the right nonce is found. This saves a lot of calculation, and it's already being used in Bitcoin mining.
 
-Aside from server bottlenecks, my i7-8550U averaged 22 to 25MH/s. In other words, it's probably the fastest DUCO-S1 miner around, barring GPUs. To try it out yourself, grab a release! There, you can find a pre-compiled Windows binary and instructions to compile for Linux below. When prompted about processess, 16 or 8 is recommended.
+Aside from server bottlenecks, my i7-8550U averaged 22 to 25MH/s. In other words, it's probably the fastest DUCO-S1 miner around, barring GPUs. To try it out yourself, grab a release! There, you can find a pre-compiled Windows binary and instructions to compile for Linux below. When prompted about processess, use the number of CPU threads on your system or slightly more.
 
 This program used to be written in Python with some C wrapped in Cython, but I have since rewritten it in pure C with native cross-platform compatibility.
 
