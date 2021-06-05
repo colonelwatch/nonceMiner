@@ -157,7 +157,7 @@ void* mining_routine(void* arg){
         on_error:
         CLOSE(soc);
         *local_hashrate = 0; // Zero out hashrate since the thread is not active
-        SLEEP(10);
+        SLEEP(2);
     }
 }
 
