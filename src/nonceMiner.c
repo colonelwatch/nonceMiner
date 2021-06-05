@@ -195,23 +195,23 @@ int main(){
     INIT_WINSOCK();
 
     int n_threads;
-    char *newline_ptr;
+    char *newline_ptr, *buf_ptr;
 
     puts("Initializing nonceMiner v1.4.0...");
     
     printf("Enter username: ");
-    fgets(username, 127, stdin);
+    buf_ptr = fgets(username, 127, stdin);
     newline_ptr = strchr(username, '\n');
-    if(newline_ptr == NULL || newline_ptr == &(username[0])){ // Exits on string too long or empty
+    if(buf_ptr == NULL || newline_ptr == NULL || newline_ptr == &(username[0])){
         puts("Invalid username, exiting...");
-        return 0;
+        return 0; // Exits on string too long or empty or read failure
     }
     else *newline_ptr = '\0'; // Else terminate the string without the newline
 
     printf("Enter identifier (\"None\" for no identifier): ");
-    fgets(identifier, 127, stdin);
+    buf_ptr = fgets(identifier, 127, stdin);
     newline_ptr = strchr(identifier, '\n');
-    if(newline_ptr == NULL || newline_ptr == &(identifier[0])){
+    if(buf_ptr == NULL || newline_ptr == NULL || newline_ptr == &(identifier[0])){
         puts("Invalid identifier, exiting...");
         return 0;
     }
