@@ -32,7 +32,7 @@ int main(){
 
     int len;
     char buf[128], job_request[256];
-    int job_request_len = sprintf(job_request, "JOB,%s,EXTREME", USERNAME);
+    int job_request_len = sprintf(job_request, "JOB,%s,EXTREME\n", USERNAME);
 
     struct sockaddr_in server;
     server.sin_addr.s_addr = inet_addr("51.15.127.80");

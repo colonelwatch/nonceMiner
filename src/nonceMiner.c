@@ -79,7 +79,7 @@ char identifier[128];
 void* mining_routine(void* arg){
     int len, *local_hashrate = (int *)arg;
     char buf[256], job_request[256];
-    int job_request_len = sprintf(job_request, "JOB,%s,EXTREME", username);
+    int job_request_len = sprintf(job_request, "JOB,%s,EXTREME\n", username);
     TIMESTAMP_T t1, t0;
     while(1){
         struct sockaddr_in server;
