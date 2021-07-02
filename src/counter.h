@@ -1,5 +1,7 @@
 #include <string.h>
 
+#include "table.h"
+
 struct counter_state{
     unsigned long as_long_integer;
     int lower_digits;

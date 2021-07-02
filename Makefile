@@ -4,14 +4,16 @@ else
 	libs := -lcrypto -pthread
 endif
 
-nonceMiner: src/nonceMiner.c src/mine_DUCO_S1.h src/mine_DUCO_S1.c src/counter.h src/counter.c | bin
-	gcc src/nonceMiner.c src/mine_DUCO_S1.c src/counter.c -O3 -Wall -o bin/nonceMiner $(libs)
+SRC_FILES := $(wildcard src/*.c)
 
-nonceMiner_minimal: src/nonceMiner_minimal.c src/mine_DUCO_S1.h src/mine_DUCO_S1.c src/counter.h src/counter.c | bin
-	gcc src/nonceMiner_minimal.c src/mine_DUCO_S1.c src/counter.c -O3 -Wall -o bin/nonceMiner_minimal $(libs)
+nonceMiner: $(filter-out src/nonceMiner_minimal.c, $(SRC_FILES)) | bin
+	gcc $^ -O3 -Wall -o bin/nonceMiner $(libs)
 
-nonceMiner_minimal_debug: src/nonceMiner_minimal.c src/mine_DUCO_S1.h src/mine_DUCO_S1.c src/counter.h src/counter.c | bin
-	gcc src/nonceMiner_minimal.c src/mine_DUCO_S1.c src/counter.c -g -Wall -o bin/nonceMiner_minimal_debug $(libs)
+nonceMiner_minimal: $(filter-out src/nonceMiner.c, $(SRC_FILES)) | bin
+	gcc $^ -O3 -Wall -o bin/nonceMiner_minimal $(libs)
+
+nonceMiner_minimal_debug: $(filter-out src/nonceMiner.c, $(SRC_FILES)) | bin
+	gcc $^ -g -Wall -o bin/nonceMiner_minimal_debug $(libs)
 
 bin:
 	mkdir bin

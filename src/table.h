@@ -1,0 +1,1 @@
+extern const char table[10000*4];
