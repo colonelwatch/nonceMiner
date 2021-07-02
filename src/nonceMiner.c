@@ -94,7 +94,7 @@ void* mining_routine(void* arg){
         if(len == -1) goto on_error;
 
         // Receives server version
-        len = recv(soc, buf, 3, 0);
+        len = recv(soc, buf, 100, 0);
         if(len == -1 || len == 0) goto on_error;
         buf[len] = 0;
 
@@ -177,7 +177,7 @@ void* ping_routine(void *arg){
         len = connect(soc, (struct sockaddr *)&server, sizeof(server));
         if(len == -1) goto on_error;
 
-        len = recv(soc, buf, 3, 0);
+        len = recv(soc, buf, 100, 0);
         if(len == -1 || len == 0) goto on_error;
         buf[len] = 0;
 

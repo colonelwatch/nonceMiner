@@ -43,7 +43,7 @@ int main(){
     len = connect(soc, (struct sockaddr *)&server, sizeof(server));
 
     // Receives the server version
-    len = recv(soc, buf, 3, 0);
+    len = recv(soc, buf, 100, 0);
     buf[len] = 0;
 
     while(1){
