@@ -85,7 +85,7 @@ void* mining_routine(void* arg){
         struct sockaddr_in server;
         server.sin_addr.s_addr = inet_addr("51.15.127.80");
         server.sin_family = AF_INET;
-        server.sin_port = htons(2811);
+        server.sin_port = htons(2814);
         unsigned int soc = socket(PF_INET, SOCK_STREAM, 0);
 
         SET_TIMEOUT(soc, 16);
@@ -169,7 +169,7 @@ void* ping_routine(void *arg){
         struct sockaddr_in server;
         server.sin_addr.s_addr = inet_addr("51.15.127.80");
         server.sin_family = AF_INET;
-        server.sin_port = htons(2811);
+        server.sin_port = htons(2814);
         unsigned int soc = socket(PF_INET, SOCK_STREAM, 0);
         
         SET_TIMEOUT(soc, 16);
