@@ -152,6 +152,9 @@ void* mining_routine(void* arg){
             if(!strcmp(buf, "GOOD\n") || !strcmp(buf, "BLOCK\n")) accepted++;
             else rejected++;
             MUTEX_UNLOCK(&count_lock);
+
+            // Delay to compensate for server-side forced waiting
+            SLEEP(*local_hashrate/500000+1);
         }
 
         on_error:
