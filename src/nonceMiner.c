@@ -83,9 +83,9 @@ void* mining_routine(void* arg){
     TIMESTAMP_T t1, t0;
     while(1){
         struct sockaddr_in server;
-        server.sin_addr.s_addr = inet_addr("51.15.127.80");
+        server.sin_addr.s_addr = inet_addr("149.91.88.18");
         server.sin_family = AF_INET;
-        server.sin_port = htons(2814);
+        server.sin_port = htons(6000);
         unsigned int soc = socket(PF_INET, SOCK_STREAM, 0);
 
         SET_TIMEOUT(soc, 16);
