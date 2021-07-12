@@ -74,8 +74,10 @@
 MUTEX_T count_lock; // Protects access to shares counters
 int server_is_online = 1;
 int accepted = 0, rejected = 0;
+int job_request_len;
 char username[128];
 char identifier[128];
+char job_request[256];
 
 struct option long_options[] = {
     {"user", required_argument, NULL, 'u'},
@@ -89,8 +91,7 @@ struct _thread_resources{
 
 void* mining_routine(struct _thread_resources* shared_data){
     int len;
-    char buf[256], job_request[256];
-    int job_request_len = sprintf(job_request, "JOB,%s,EXTREME\n", username);
+    char buf[256];
     TIMESTAMP_T t1, t0;
     while(1){
         struct sockaddr_in server;
@@ -275,6 +276,9 @@ int main(int argc, char **argv){
     else{
         printf("Using %d threads...\n", n_threads);
     }
+
+    // Prepares job request string using username
+    job_request_len = sprintf(job_request, "JOB,%s,EXTREME\n", username);
     
     struct _thread_resources *thread_data_arr = calloc(n_threads, sizeof(struct _thread_resources));
     THREAD_T *mining_threads = malloc(n_threads*sizeof(THREAD_T));
