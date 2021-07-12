@@ -76,7 +76,7 @@ int server_is_online = 1;
 int accepted = 0, rejected = 0;
 int job_request_len;
 char username[128];
-char identifier[128];
+char identifier[128] = ""; // Default value should be empty string
 char job_request[256];
 
 struct option long_options[] = {
@@ -208,7 +208,6 @@ int main(int argc, char **argv){
     INIT_WINSOCK();
 
     int n_threads = -1;
-    char *newline_ptr, *buf_ptr;
     int opt;
 
     opterr = 0; // Disables default getopt error messages
@@ -236,46 +235,17 @@ int main(int argc, char **argv){
         }
     }
 
-    puts("Initializing nonceMiner v1.4.2...");
-    
     if(strcmp(username, "") == 0){
-        printf("Enter username: ");
-        buf_ptr = fgets(username, 127, stdin);
-        newline_ptr = strchr(username, '\n');
-        if(buf_ptr == NULL || newline_ptr == NULL || newline_ptr == &(username[0])){
-            puts("Invalid username, exiting...");
-            return 0; // Exits on string too long or empty or read failure
-        }
-        else *newline_ptr = '\0'; // Else terminate the string without the newline
+        fprintf(stderr, "Missing username '-u'.\n");
+        return 1;
     }
-    else{
-        printf("Using username '%s'...\n", username);
-    }
-
-    if(strcmp(identifier, "") == 0){
-        printf("Enter identifier (\"None\" for no identifier): ");
-        buf_ptr = fgets(identifier, 127, stdin);
-        newline_ptr = strchr(identifier, '\n');
-        if(buf_ptr == NULL || newline_ptr == NULL || newline_ptr == &(identifier[0])){
-            puts("Invalid identifier, exiting...");
-            return 0;
-        }
-        else *newline_ptr = '\0';
-    }
-    else{
-        printf("Using identifier '%s'...\n", identifier);
-    }
-
     if(n_threads == -1){
-        printf("Enter # of threads: ");
-        if(scanf("%d", &n_threads) != 1){
-            puts("Invalid number of threads, exiting...");
-            return 0;
-        }
+        fprintf(stderr, "Missing number of threads '-t'\n");
+        return 1;
     }
-    else{
-        printf("Using %d threads...\n", n_threads);
-    }
+
+    puts("Initializing nonceMiner v1.4.2...");
+    printf("Configured with username '%s', identifier '%s', and %d thread(s).\n", username, identifier, n_threads);
 
     // Prepares job request string using username
     job_request_len = sprintf(job_request, "JOB,%s,EXTREME\n", username);
