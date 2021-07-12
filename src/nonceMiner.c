@@ -89,10 +89,11 @@ struct _thread_resources{
     int hashrate;
 };
 
-void* mining_routine(struct _thread_resources* shared_data){
+void* mining_routine(void* arg){
     int len;
     char buf[256];
     TIMESTAMP_T t1, t0;
+    struct _thread_resources *shared_data = arg;
     while(1){
         struct sockaddr_in server;
         server.sin_addr.s_addr = inet_addr("149.91.88.18");
