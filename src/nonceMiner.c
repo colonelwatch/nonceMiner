@@ -83,8 +83,12 @@ struct option long_options[] = {
     {"threads", required_argument, NULL, 't'}
 };
 
-void* mining_routine(void* arg){
-    int len, *local_hashrate = (int *)arg;
+struct _thread_resources{
+    int hashrate;
+};
+
+void* mining_routine(struct _thread_resources* shared_data){
+    int len;
     char buf[256], job_request[256];
     int job_request_len = sprintf(job_request, "JOB,%s,EXTREME\n", username);
     TIMESTAMP_T t1, t0;
@@ -138,13 +142,14 @@ void* mining_routine(void* arg){
                 );
             }
             
-            // Records time-to-solve for calculating hashrate later
+            // Calculates hashrate to report back to server
             GET_TIME(&t1);
             int tdelta_ms = DIFF_TIME_MS(&t1, &t0);
+            int local_hashrate = nonce/tdelta_ms*1000;
             t0 = t1;
 
             // Generates and sends result string
-            len = sprintf(buf, "%ld,%d,nonceMiner v1.4.2,%s\n", nonce, *local_hashrate, identifier);
+            len = sprintf(buf, "%ld,%d,nonceMiner v1.4.2,%s\n", nonce, local_hashrate, identifier);
             len = send(soc, buf, len, 0);
             if(len == -1) goto on_error;
 
@@ -155,7 +160,7 @@ void* mining_routine(void* arg){
 
             // Mutex section for updating shared statistics
             MUTEX_LOCK(&count_lock);
-            *local_hashrate = nonce/tdelta_ms*1000;
+            shared_data->hashrate = local_hashrate;
             if(!strcmp(buf, "GOOD\n") || !strcmp(buf, "BLOCK\n")) accepted++;
             else rejected++;
             MUTEX_UNLOCK(&count_lock);
@@ -163,7 +168,7 @@ void* mining_routine(void* arg){
 
         on_error:
         CLOSE(soc);
-        *local_hashrate = 0; // Zero out hashrate since the thread is not active
+        shared_data->hashrate = 0; // Zero out hashrate since the thread is not active
         SLEEP(2);
     }
 }
@@ -271,12 +276,12 @@ int main(int argc, char **argv){
         printf("Using %d threads...\n", n_threads);
     }
     
-    int *local_hashrate = calloc(n_threads, sizeof(int));
+    struct _thread_resources *thread_data_arr = calloc(n_threads, sizeof(struct _thread_resources));
     THREAD_T *mining_threads = malloc(n_threads*sizeof(THREAD_T));
     MUTEX_CREATE(&count_lock);
     puts("Starting threads...");
     for(int i = 0; i < n_threads; i++){
-        THREAD_CREATE(&mining_threads[i], mining_routine, &local_hashrate[i]);
+        THREAD_CREATE(&mining_threads[i], mining_routine, &thread_data_arr[i]);
         SLEEP(1);
     }
     THREAD_T ping_thread;
@@ -284,7 +289,6 @@ int main(int argc, char **argv){
     
     // Zeroes out reported work done while starting up threads
     MUTEX_LOCK(&count_lock);
-    memset(local_hashrate, 0, sizeof(int));
     accepted = 0;
     rejected = 0;
     MUTEX_UNLOCK(&count_lock);
@@ -293,7 +297,7 @@ int main(int argc, char **argv){
         SLEEP(2);
         
         int total_hashrate = 0;
-        for(int i = 0; i < n_threads; i++) total_hashrate += local_hashrate[i];
+        for(int i = 0; i < n_threads; i++) total_hashrate += thread_data_arr[i].hashrate;
         float megahash = (float)total_hashrate/1000000;
 
         MUTEX_LOCK(&count_lock);
