@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
+#include <getopt.h>
 #ifdef _WIN32 // Windows-unique preprocessor directives for compatiblity
     #ifdef _WIN32_WINNT
         #undef _WIN32_WINNT
@@ -75,6 +76,12 @@ int server_is_online = 1;
 int accepted = 0, rejected = 0;
 char username[128];
 char identifier[128];
+
+struct option long_options[] = {
+    {"user", required_argument, NULL, 'u'},
+    {"worker", required_argument, NULL, 'w'},
+    {"threads", required_argument, NULL, 't'}
+};
 
 void* mining_routine(void* arg){
     int len, *local_hashrate = (int *)arg;
@@ -191,36 +198,77 @@ void* ping_routine(void *arg){
     }
 }
 
-int main(){
+int main(int argc, char **argv){
     INIT_WINSOCK();
 
-    int n_threads;
+    int n_threads = -1;
     char *newline_ptr, *buf_ptr;
+    int opt;
+
+    opterr = 0; // Disables default getopt error messages
+
+    while((opt = getopt_long(argc, argv, "u:w:t:", long_options, NULL)) != -1){
+        switch(opt){
+            case 'u':
+                strcpy(username, optarg);
+                break;
+            case 'w':
+                strcpy(identifier, optarg);
+                break;
+            case 't':
+                if(sscanf(optarg, "%d", &n_threads) != 1 || n_threads <= 0){
+                    fprintf(stderr, "Option -t requires a positive integer argument.\n");
+                    return 1;
+                }
+                break;
+            case '?':
+                if(optopt == 'u' || optopt == 'w' || optopt == 't')
+                    fprintf(stderr, "Option -%c requires an argument.\n", optopt);
+                else
+                    fprintf(stderr, "Unknown option '-%c'.\n", optopt);
+                return 1;
+        }
+    }
 
     puts("Initializing nonceMiner v1.4.2...");
     
-    printf("Enter username: ");
-    buf_ptr = fgets(username, 127, stdin);
-    newline_ptr = strchr(username, '\n');
-    if(buf_ptr == NULL || newline_ptr == NULL || newline_ptr == &(username[0])){
-        puts("Invalid username, exiting...");
-        return 0; // Exits on string too long or empty or read failure
+    if(strcmp(username, "") == 0){
+        printf("Enter username: ");
+        buf_ptr = fgets(username, 127, stdin);
+        newline_ptr = strchr(username, '\n');
+        if(buf_ptr == NULL || newline_ptr == NULL || newline_ptr == &(username[0])){
+            puts("Invalid username, exiting...");
+            return 0; // Exits on string too long or empty or read failure
+        }
+        else *newline_ptr = '\0'; // Else terminate the string without the newline
     }
-    else *newline_ptr = '\0'; // Else terminate the string without the newline
-
-    printf("Enter identifier (\"None\" for no identifier): ");
-    buf_ptr = fgets(identifier, 127, stdin);
-    newline_ptr = strchr(identifier, '\n');
-    if(buf_ptr == NULL || newline_ptr == NULL || newline_ptr == &(identifier[0])){
-        puts("Invalid identifier, exiting...");
-        return 0;
+    else{
+        printf("Using username '%s'...\n", username);
     }
-    else *newline_ptr = '\0';
 
-    printf("Enter # of threads: ");
-    if(scanf("%d", &n_threads) != 1){
-        puts("Invalid number of threads, exiting...");
-        return 0;
+    if(strcmp(identifier, "") == 0){
+        printf("Enter identifier (\"None\" for no identifier): ");
+        buf_ptr = fgets(identifier, 127, stdin);
+        newline_ptr = strchr(identifier, '\n');
+        if(buf_ptr == NULL || newline_ptr == NULL || newline_ptr == &(identifier[0])){
+            puts("Invalid identifier, exiting...");
+            return 0;
+        }
+        else *newline_ptr = '\0';
+    }
+    else{
+        printf("Using identifier '%s'...\n", identifier);
+    }
+
+    if(n_threads == -1){
+        printf("Enter # of threads: ");
+        if(scanf("%d", &n_threads) != 1){
+            puts("Invalid number of threads, exiting...");
+            return 0;
+        }
+    }
+    else{
+        printf("Using %d threads...\n", n_threads);
     }
     
     int *local_hashrate = calloc(n_threads, sizeof(int));
