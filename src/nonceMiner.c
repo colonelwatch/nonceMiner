@@ -71,6 +71,12 @@
 
 #include "mine_DUCO_S1.h"
 
+struct _thread_resources{
+    int hashrate;
+};
+
+enum Intensity {LOW, MEDIUM, NET, EXTREME};
+
 MUTEX_T count_lock; // Protects access to shares counters
 int server_is_online = 1;
 int accepted = 0, rejected = 0;
@@ -80,13 +86,10 @@ char identifier[128] = ""; // Default value should be empty string
 char job_request[256];
 
 struct option long_options[] = {
+    {"intensity", required_argument, NULL, 'i'},
     {"user", required_argument, NULL, 'u'},
     {"worker", required_argument, NULL, 'w'},
     {"threads", required_argument, NULL, 't'}
-};
-
-struct _thread_resources{
-    int hashrate;
 };
 
 void* mining_routine(void* arg){
@@ -209,12 +212,23 @@ int main(int argc, char **argv){
     INIT_WINSOCK();
 
     int n_threads = -1;
+    enum Intensity diff = EXTREME;
     int opt;
 
     opterr = 0; // Disables default getopt error messages
 
-    while((opt = getopt_long(argc, argv, "u:w:t:", long_options, NULL)) != -1){
+    while((opt = getopt_long(argc, argv, "i:u:w:t:", long_options, NULL)) != -1){
         switch(opt){
+            case 'i':
+                if(strcmp(optarg, "LOW") == 0) diff = LOW;
+                else if(strcmp(optarg, "MEDIUM") == 0) diff = MEDIUM;
+                else if(strcmp(optarg, "NET") == 0) diff = NET;
+                else if(strcmp(optarg, "EXTREME") == 0) diff = EXTREME;
+                else{
+                    fprintf(stderr, "Option -i requires an argument from the set {LOW, MEDIUM, NET, EXTREME}");
+                    return 1;
+                }
+                break;
             case 'u':
                 strcpy(username, optarg);
                 break;
@@ -228,7 +242,7 @@ int main(int argc, char **argv){
                 }
                 break;
             case '?':
-                if(optopt == 'u' || optopt == 'w' || optopt == 't')
+                if(optopt == 'i' || optopt == 'u' || optopt == 'w' || optopt == 't')
                     fprintf(stderr, "Option -%c requires an argument.\n", optopt);
                 else
                     fprintf(stderr, "Unknown option '-%c'.\n", optopt);
@@ -244,12 +258,27 @@ int main(int argc, char **argv){
         fprintf(stderr, "Missing number of threads '-t'\n");
         return 1;
     }
+    
+    // Prepares diff_string and job_request using username and diff
+    char diff_string[32];
+    switch(diff){
+        case LOW:
+            strcpy(diff_string, "LOW");
+            break;
+        case MEDIUM:
+            strcpy(diff_string, "MEDIUM");
+            break;
+        case NET:
+            strcpy(diff_string, "NET");
+            break;
+        case EXTREME:
+            strcpy(diff_string, "EXTREME");
+            break;
+    }
+    job_request_len = sprintf(job_request, "JOB,%s,%s\n", username, diff_string);
 
     puts("Initializing nonceMiner v1.4.2...");
-    printf("Configured with username '%s', identifier '%s', and %d thread(s).\n", username, identifier, n_threads);
-
-    // Prepares job request string using username
-    job_request_len = sprintf(job_request, "JOB,%s,EXTREME\n", username);
+    printf("Configured with username '%s', identifier '%s', %d thread(s), and difficulty '%s'.\n", username, identifier, n_threads, diff_string);
     
     struct _thread_resources *thread_data_arr = calloc(n_threads, sizeof(struct _thread_resources));
     THREAD_T *mining_threads = malloc(n_threads*sizeof(THREAD_T));
