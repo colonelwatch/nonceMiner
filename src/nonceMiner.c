@@ -8,6 +8,7 @@
     #endif
     #define _WIN32_WINNT 0x0600 // Necessary for GetTickCount64
     #include <winsock2.h>
+    #include <ws2tcpip.h>
     #include <windows.h>
     // Socket defines
     #define INIT_WINSOCK() do{\
@@ -41,6 +42,7 @@
     // Socket defines
     #include <sys/socket.h>
     #include <arpa/inet.h>
+    #include <netdb.h>
     #include <unistd.h>
     #include <pthread.h>
     #define INIT_WINSOCK() // No-op
@@ -81,12 +83,15 @@ MUTEX_T count_lock; // Protects access to shares counters
 int server_is_online = 1;
 int accepted = 0, rejected = 0;
 int job_request_len;
+char job_request[256];
+char server_address[256] = "149.91.88.18"; // Default server should be pulse-pool-1
+char server_port[16] = "6000";
 char username[128];
 char identifier[128] = ""; // Default value should be empty string
-char job_request[256];
 
 struct option long_options[] = {
     {"intensity", required_argument, NULL, 'i'},
+    {"url", required_argument, NULL, 'o'},
     {"user", required_argument, NULL, 'u'},
     {"worker", required_argument, NULL, 'w'},
     {"threads", required_argument, NULL, 't'}
@@ -98,16 +103,16 @@ void* mining_routine(void* arg){
     TIMESTAMP_T t1, t0;
     struct _thread_resources *shared_data = arg;
     while(1){
-        struct sockaddr_in server;
-        server.sin_addr.s_addr = inet_addr("149.91.88.18");
-        server.sin_family = AF_INET;
-        server.sin_port = htons(6000);
         unsigned int soc = socket(PF_INET, SOCK_STREAM, 0);
-
         SET_TIMEOUT(soc, 16);
 
-        len = connect(soc, (struct sockaddr *)&server, sizeof(server));
+        // Resolves server address and port then connects
+        struct addrinfo *dns_result;
+        len = getaddrinfo((const char*)server_address, (const char*)server_port, NULL, &dns_result);
+        if(len != 0) goto on_error;
+        len = connect(soc, dns_result->ai_addr, dns_result->ai_addrlen);
         if(len == -1) goto on_error;
+        freeaddrinfo(dns_result);
 
         // Receives server version
         len = recv(soc, buf, 100, 0);
@@ -217,7 +222,7 @@ int main(int argc, char **argv){
 
     opterr = 0; // Disables default getopt error messages
 
-    while((opt = getopt_long(argc, argv, "i:u:w:t:", long_options, NULL)) != -1){
+    while((opt = getopt_long(argc, argv, "i:o:u:w:t:", long_options, NULL)) != -1){
         switch(opt){
             case 'i':
                 if(strcmp(optarg, "LOW") == 0) diff = LOW;
@@ -226,6 +231,14 @@ int main(int argc, char **argv){
                 else if(strcmp(optarg, "EXTREME") == 0) diff = EXTREME;
                 else{
                     fprintf(stderr, "Option -i requires an argument from the set {LOW, MEDIUM, NET, EXTREME}");
+                    return 1;
+                }
+                break;
+            case 'o': ; // Empty statement preceding declaration is necessary
+                char *start_ptr = optarg;
+                if(strncmp(optarg, "tcp://", 6) == 0) start_ptr += 6; // For now, ignores tcp header if present
+                if(sscanf((const char*)start_ptr, "%255[a-z0-9.]:%15[0-9]", server_address, server_port) != 2){
+                    fprintf(stderr, "Option -o is not a valid address and port");
                     return 1;
                 }
                 break;
@@ -242,7 +255,7 @@ int main(int argc, char **argv){
                 }
                 break;
             case '?':
-                if(optopt == 'i' || optopt == 'u' || optopt == 'w' || optopt == 't')
+                if(optopt == 'i' || optopt == 'o' || optopt == 'u' || optopt == 'w' || optopt == 't')
                     fprintf(stderr, "Option -%c requires an argument.\n", optopt);
                 else
                     fprintf(stderr, "Unknown option '-%c'.\n", optopt);
