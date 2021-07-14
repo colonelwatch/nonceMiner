@@ -12,6 +12,12 @@
     #include <ws2tcpip.h>
     #include <windows.h>
     #include <winbase.h>
+    // CPU info defines
+    #define GET_DEFAULT_N_THREADS(ptr_n_threads) do{\
+        SYSTEM_INFO sysinfo;\
+        GetSystemInfo(&sysinfo);\
+        *(ptr_n_threads) = sysinfo.dwNumberOfProcessors;\
+    }while(0);
     // Socket defines
     #define INIT_WINSOCK() do{\
         WSADATA wsa_data;\
@@ -49,10 +55,15 @@
 #else
     #include <sys/socket.h>
     #include <arpa/inet.h>
+    #include <sys/sysinfo.h>
     #include <netdb.h>
     #include <errno.h>
     #include <unistd.h>
     #include <pthread.h>
+    // CPU info defines
+    #define GET_DEFAULT_N_THREADS(ptr_n_threads) do{\
+        *(ptr_n_threads) = get_nprocs();\
+    }while(0);
     // Socket defines
     #define INIT_WINSOCK() // No-op
     #define SET_TIMEOUT(soc, seconds) do{\
@@ -289,7 +300,8 @@ void* ping_routine(void *arg){
 int main(int argc, char **argv){
     INIT_WINSOCK();
 
-    int n_threads = -1;
+    int n_threads;
+    GET_DEFAULT_N_THREADS(&n_threads);
     enum Intensity diff = EXTREME;
     int opt;
 
@@ -338,10 +350,6 @@ int main(int argc, char **argv){
 
     if(strcmp(username, "") == 0){
         fprintf(stderr, "Missing username '-u'.\n");
-        return 1;
-    }
-    if(n_threads == -1){
-        fprintf(stderr, "Missing number of threads '-t'\n");
         return 1;
     }
     
