@@ -11,6 +11,7 @@
     #include <winsock2.h>
     #include <ws2tcpip.h>
     #include <windows.h>
+    #include <winbase.h>
     // Socket defines
     #define INIT_WINSOCK() do{\
         WSADATA wsa_data;\
@@ -39,13 +40,20 @@
     #define TIMESTAMP_T long long
     #define GET_TIME(t_ptr) *(t_ptr) = GetTickCount64()
     #define DIFF_TIME_MS(t1_ptr, t0_ptr) *(t1_ptr)-*(t0_ptr)
+    // Socket error reporting defines
+    #define SOCK_ERRNO WSAGetLastError()
+    #define SPRINT_SOCK_ERRNO(buf, buf_size, errno) do{\
+        int len = FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM, NULL, errno, 0, buf, buf_size, NULL);\
+        buf[len-1] = 0;\
+    }while(0)
 #else
-    // Socket defines
     #include <sys/socket.h>
     #include <arpa/inet.h>
     #include <netdb.h>
+    #include <errno.h>
     #include <unistd.h>
     #include <pthread.h>
+    // Socket defines
     #define INIT_WINSOCK() // No-op
     #define SET_TIMEOUT(soc, seconds) do{\
         struct timeval timeout = {.tv_sec = seconds, .tv_usec = 0};\
@@ -70,6 +78,9 @@
     #define GET_TIME(t_ptr) clock_gettime(CLOCK_MONOTONIC, t_ptr)
     #define DIFF_TIME_MS(t1_ptr, t0_ptr) \
         ((t1_ptr)->tv_sec-(t0_ptr)->tv_sec)*1000+((t1_ptr)->tv_nsec-(t0_ptr)->tv_nsec)/1000000
+    // Socket error reporting defines
+    #define SOCK_ERRNO errno
+    #define SPRINT_SOCK_ERRNO(buf, buf_size, errno) strcpy(buf, strerror(errno))
 #endif
 
 #include "mine_DUCO_S1.h"
@@ -127,9 +138,16 @@ void* mining_routine(void* arg){
         // Resolves server address and port then connects
         struct addrinfo *dns_result;
         len = getaddrinfo((const char*)server_address, (const char*)server_port, NULL, &dns_result);
-        if(len != 0) goto on_error;
+        if(len != 0){ // Custom exit-on-failure code for DNS resolution
+            print_formatted_log(thread_code, "Error resolving server address: %s", gai_strerror(len)); 
+            goto on_error;
+        }
         len = connect(soc, dns_result->ai_addr, dns_result->ai_addrlen);
-        if(len == -1) goto on_error;
+        if(len == -1){ // Boilerplate exit-on-failure code
+            SPRINT_SOCK_ERRNO(buf, sizeof(buf), SOCK_ERRNO);
+            print_formatted_log(thread_code, "Error sending job request: %s", buf);
+            goto on_error;
+        }
         freeaddrinfo(dns_result);
 
         // Receives server version
@@ -143,11 +161,23 @@ void* mining_routine(void* arg){
         while(1){
             // Sends job request
             len = send(soc, job_request, job_request_len, 0);
-            if(len == -1) goto on_error; // Boilerplate exit-on-failure line
+            if(len == -1){
+                SPRINT_SOCK_ERRNO(buf, sizeof(buf), SOCK_ERRNO);
+                print_formatted_log(thread_code, "Error sending job request: %s", buf);
+                goto on_error;
+            }
 
             // Receives job string
             len = recv(soc, buf, 128, 0);
-            if(len == -1 || len == 0) goto on_error; // Adds exit-on-disconnect
+            if(len == -1){
+                SPRINT_SOCK_ERRNO(buf, sizeof(buf), SOCK_ERRNO);
+                print_formatted_log(thread_code, "Error receiving job: %s", buf);
+                goto on_error;
+            }
+            if(len == 0){ // Boilerplate exit-on-disconnect code
+                print_formatted_log(thread_code, "Error receiving job: server closed gracefully");
+                goto on_error;
+            }
             buf[len] = 0;
 
             int diff;
@@ -182,11 +212,23 @@ void* mining_routine(void* arg){
             // Generates and sends result string
             len = sprintf(buf, "%ld,%d,nonceMiner v1.4.2,%s\n", nonce, local_hashrate, identifier);
             len = send(soc, buf, len, 0);
-            if(len == -1) goto on_error;
+            if(len == -1){
+                SPRINT_SOCK_ERRNO(buf, sizeof(buf), SOCK_ERRNO);
+                print_formatted_log(thread_code, "Error sending result: %s", buf);
+                goto on_error;
+            }
 
             // Receives response and parses it
             len = recv(soc, buf, 128, 0); // May take up to 10 seconds as of server v2.2!
-            if(len == -1 || len == 0) goto on_error;
+            if(len == -1){
+                SPRINT_SOCK_ERRNO(buf, sizeof(buf), SOCK_ERRNO);
+                print_formatted_log(thread_code, "Error receiving feedback: %s", buf);
+                goto on_error;
+            }
+            if(len == 0){ // Boilerplate exit-on-disconnect code
+                print_formatted_log(thread_code, "Error receiving feedback: server closed gracefully");
+                goto on_error;
+            }
             buf[len] = 0;
             int local_accepted_share = (strcmp(buf, "GOOD\n") == 0 || strcmp(buf, "BLOCK\n") == 0);
 
@@ -207,6 +249,7 @@ void* mining_routine(void* arg){
         CLOSE(soc);
         shared_data->hashrate = 0; // Zero out hashrate since the thread is not active
         SLEEP(2);
+        print_formatted_log(thread_code, "Restarted due to an unexpected error", shared_data->thread_id);
     }
 }
 
@@ -222,7 +265,7 @@ void* ping_routine(void *arg){
         unsigned int soc = socket(PF_INET, SOCK_STREAM, 0);
         
         SET_TIMEOUT(soc, 16);
-        
+
         len = connect(soc, (struct sockaddr *)&server, sizeof(server));
         if(len == -1) goto on_error;
 
@@ -354,7 +397,7 @@ int main(int argc, char **argv){
 
         printf("\n");
         if(server_is_online)
-            print_formatted_log("rprt", "Hashrate: %.2f MH/s, Accepted %d, Rejected %d", megahash, accepted_copy, rejected_copy);
+        print_formatted_log("rprt", "Hashrate: %.2f MH/s, Accepted %d, Rejected %d", megahash, accepted_copy, rejected_copy);
         else
             print_formatted_log("rprt", "Hashrate: %.2f MH/s, Accepted %d, Rejected %d, server ping timeout", megahash, accepted_copy, rejected_copy);
         printf("\n");
