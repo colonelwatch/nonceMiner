@@ -105,21 +105,13 @@ enum Intensity {LOW, MEDIUM, NET, EXTREME};
 
 MUTEX_T count_lock; // Protects access to shares counters
 int server_is_online = 1;
-int accepted = 0, rejected = 0;
+int shared_accepted = 0, shared_rejected = 0;
 int job_request_len;
 char job_request[256];
 char server_address[256] = "149.91.88.18"; // Default server should be pulse-pool-1
 char server_port[16] = "6000";
 char username[128];
 char identifier[128] = ""; // Default value should be empty string
-
-struct option long_options[] = {
-    {"intensity", required_argument, NULL, 'i'},
-    {"url", required_argument, NULL, 'o'},
-    {"user", required_argument, NULL, 'u'},
-    {"worker", required_argument, NULL, 'w'},
-    {"threads", required_argument, NULL, 't'}
-};
 
 // Prints log as formatted along with timestamp, newline, and four-letter code
 void print_formatted_log(const char* code, const char* format, ...){
@@ -155,15 +147,23 @@ void* mining_routine(void* arg){
         }
         len = connect(soc, dns_result->ai_addr, dns_result->ai_addrlen);
         if(len == -1){ // Boilerplate exit-on-failure code
-            SPRINT_SOCK_ERRNO(buf, sizeof(buf), SOCK_ERRNO);
-            print_formatted_log(thread_code, "Error sending job request: %s", buf);
+            SPRINT_SOCK_ERRNO(buf, sizeof(buf), SOCK_ERRNO); // Reusing buf to print error message
+            print_formatted_log(thread_code, "Error opening connection: %s", buf);
             goto on_error;
         }
         freeaddrinfo(dns_result);
 
         // Receives server version
         len = recv(soc, buf, 100, 0);
-        if(len == -1 || len == 0) goto on_error;
+        if(len == -1){
+            SPRINT_SOCK_ERRNO(buf, sizeof(buf), SOCK_ERRNO);
+            print_formatted_log(thread_code, "Error connecting: %s", buf);
+            goto on_error;
+        }
+        else if(len == 0){ // Boilerplate exit-on-disconnect code
+            print_formatted_log(thread_code, "Error connecting: server closed gracefully");
+            goto on_error;
+        }
         buf[len] = 0;
         print_formatted_log(thread_code, "Connected to %s:%s with response: %s", server_address, server_port, buf);
 
@@ -185,7 +185,7 @@ void* mining_routine(void* arg){
                 print_formatted_log(thread_code, "Error receiving job: %s", buf);
                 goto on_error;
             }
-            if(len == 0){ // Boilerplate exit-on-disconnect code
+            else if(len == 0){
                 print_formatted_log(thread_code, "Error receiving job: server closed gracefully");
                 goto on_error;
             }
@@ -236,7 +236,7 @@ void* mining_routine(void* arg){
                 print_formatted_log(thread_code, "Error receiving feedback: %s", buf);
                 goto on_error;
             }
-            if(len == 0){ // Boilerplate exit-on-disconnect code
+            else if(len == 0){ 
                 print_formatted_log(thread_code, "Error receiving feedback: server closed gracefully");
                 goto on_error;
             }
@@ -251,8 +251,8 @@ void* mining_routine(void* arg){
             // Mutex section for updating shared statistics
             MUTEX_LOCK(&count_lock);
             shared_data->hashrate = local_hashrate;
-            if(local_accepted_share) accepted++;
-            else rejected++;
+            if(local_accepted_share) shared_accepted++;
+            else shared_rejected++;
             MUTEX_UNLOCK(&count_lock);
         }
 
@@ -304,10 +304,9 @@ int main(int argc, char **argv){
     GET_DEFAULT_N_THREADS(&n_threads);
     enum Intensity diff = EXTREME;
     int opt;
-
     opterr = 0; // Disables default getopt error messages
 
-    while((opt = getopt_long(argc, argv, "i:o:u:w:t:", long_options, NULL)) != -1){
+    while((opt = getopt(argc, argv, "i:o:u:w:t:")) != -1){
         switch(opt){
             case 'i':
                 if(strcmp(optarg, "LOW") == 0) diff = LOW;
@@ -371,25 +370,29 @@ int main(int argc, char **argv){
     }
     job_request_len = sprintf(job_request, "JOB,%s,%s\n", username, diff_string);
 
-    puts("Initializing nonceMiner v1.4.2...");
-    printf("Configured with username '%s', identifier '%s', %d thread(s), and difficulty '%s'.\n", username, identifier, n_threads, diff_string);
-    
+    printf("Initializing nonceMiner v1.4.2...\n");
+    printf("Configured with username '%s', ", username);
+    printf("identifier '%s', ", identifier);
+    printf("difficulty '%s', ", diff_string);
+    printf("and %d thread(s).\n", n_threads);
+    printf("Starting threads...\n");
+
     struct _thread_resources *thread_data_arr = calloc(n_threads, sizeof(struct _thread_resources));
     THREAD_T *mining_threads = malloc(n_threads*sizeof(THREAD_T));
     MUTEX_CREATE(&count_lock);
-    puts("Starting threads...");
     for(int i = 0; i < n_threads; i++){
         thread_data_arr[i].thread_id = i;
         THREAD_CREATE(&mining_threads[i], mining_routine, &thread_data_arr[i]);
         SLEEP(1);
     }
+    
     THREAD_T ping_thread;
     THREAD_CREATE(&ping_thread, ping_routine, NULL);
     
     // Zeroes out reported work done while starting up threads
     MUTEX_LOCK(&count_lock);
-    accepted = 0;
-    rejected = 0;
+    shared_accepted = 0;
+    shared_rejected = 0;
     MUTEX_UNLOCK(&count_lock);
 
     while(1){
@@ -400,10 +403,10 @@ int main(int argc, char **argv){
         float megahash = (float)total_hashrate/1000000;
 
         MUTEX_LOCK(&count_lock);
-        int accepted_copy = accepted; // Takes copies to keep mutex section short
-        int rejected_copy = rejected;
-        accepted = 0;
-        rejected = 0;
+        int accepted_copy = shared_accepted; // Takes copies to keep mutex section short
+        int rejected_copy = shared_rejected;
+        shared_accepted = 0;
+        shared_rejected = 0;
         MUTEX_UNLOCK(&count_lock);
 
         printf("\n");
