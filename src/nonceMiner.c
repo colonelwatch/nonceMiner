@@ -2,6 +2,7 @@
 #include <string.h>
 #include <time.h>
 #include <getopt.h>
+#include <stdarg.h>
 #ifdef _WIN32 // Windows-unique preprocessor directives for compatiblity
     #ifdef _WIN32_WINNT
         #undef _WIN32_WINNT
@@ -74,6 +75,7 @@
 #include "mine_DUCO_S1.h"
 
 struct _thread_resources{
+    int thread_id;
     int hashrate;
 };
 
@@ -97,11 +99,27 @@ struct option long_options[] = {
     {"threads", required_argument, NULL, 't'}
 };
 
+// Prints log as formatted along with timestamp, newline, and four-letter code
+void print_formatted_log(const char* code, const char* format, ...){
+    time_t ts_epoch = time(NULL);
+    struct tm *ts_clock = localtime(&ts_epoch);
+    printf("%02d:%02d:%02d", ts_clock->tm_hour, ts_clock->tm_min, ts_clock->tm_sec);
+    printf(" [%s] ", code);
+
+    va_list args;
+    va_start(args, format);
+    vprintf(format, args);
+    va_end(args);
+
+    printf("\n");
+}
+
 void* mining_routine(void* arg){
     int len;
-    char buf[256];
+    char buf[256], thread_code[16];
     TIMESTAMP_T t1, t0;
     struct _thread_resources *shared_data = arg;
+    sprintf(thread_code, "cpu%1d", shared_data->thread_id);
     while(1){
         unsigned int soc = socket(PF_INET, SOCK_STREAM, 0);
         SET_TIMEOUT(soc, 16);
@@ -118,6 +136,7 @@ void* mining_routine(void* arg){
         len = recv(soc, buf, 100, 0);
         if(len == -1 || len == 0) goto on_error;
         buf[len] = 0;
+        print_formatted_log(thread_code, "Connected to %s:%s with response: %s", server_address, server_port, buf);
 
         GET_TIME(&t0);
 
@@ -135,6 +154,7 @@ void* mining_routine(void* arg){
             long nonce;
             if(buf[40] == ','){ // If the prefix is a SHA1 hex digest (40 chars long)...
                 diff = atoi((const char*) &buf[82]);
+                print_formatted_log(thread_code, "New job from %s with difficulty %d", server_address, diff);
                 nonce = mine_DUCO_S1(
                     (const unsigned char*) &buf[0],
                     40,
@@ -144,6 +164,7 @@ void* mining_routine(void* arg){
             }
             else{ // Else the prefix is probably an XXHASH hex digest (16 chars long)...
                 diff = atoi((const char*) &buf[58]);
+                print_formatted_log(thread_code, "New job from %s with difficulty %d", server_address, diff);
                 nonce = mine_DUCO_S1(
                     (const unsigned char*) &buf[0],
                     16,
@@ -163,15 +184,21 @@ void* mining_routine(void* arg){
             len = send(soc, buf, len, 0);
             if(len == -1) goto on_error;
 
-            // Receives response
+            // Receives response and parses it
             len = recv(soc, buf, 128, 0); // May take up to 10 seconds as of server v2.2!
             if(len == -1 || len == 0) goto on_error;
             buf[len] = 0;
+            int local_accepted_share = (strcmp(buf, "GOOD\n") == 0 || strcmp(buf, "BLOCK\n") == 0);
+
+            if(local_accepted_share)
+                print_formatted_log(thread_code, "Share accepted, work-time %d.%d s", tdelta_ms/1000, tdelta_ms%1000);
+            else
+                print_formatted_log(thread_code, "Share rejected, work-time %d.%d s", tdelta_ms/1000, tdelta_ms%1000);
 
             // Mutex section for updating shared statistics
             MUTEX_LOCK(&count_lock);
             shared_data->hashrate = local_hashrate;
-            if(!strcmp(buf, "GOOD\n") || !strcmp(buf, "BLOCK\n")) accepted++;
+            if(local_accepted_share) accepted++;
             else rejected++;
             MUTEX_UNLOCK(&count_lock);
         }
@@ -298,6 +325,7 @@ int main(int argc, char **argv){
     MUTEX_CREATE(&count_lock);
     puts("Starting threads...");
     for(int i = 0; i < n_threads; i++){
+        thread_data_arr[i].thread_id = i;
         THREAD_CREATE(&mining_threads[i], mining_routine, &thread_data_arr[i]);
         SLEEP(1);
     }
@@ -311,7 +339,7 @@ int main(int argc, char **argv){
     MUTEX_UNLOCK(&count_lock);
 
     while(1){
-        SLEEP(2);
+        SLEEP(10);
         
         int total_hashrate = 0;
         for(int i = 0; i < n_threads; i++) total_hashrate += thread_data_arr[i].hashrate;
@@ -324,13 +352,12 @@ int main(int argc, char **argv){
         rejected = 0;
         MUTEX_UNLOCK(&count_lock);
 
-        time_t ts_epoch = time(NULL);
-        struct tm *ts_clock = localtime(&ts_epoch);
-        printf("%02d:%02d:%02d", ts_clock->tm_hour, ts_clock->tm_min, ts_clock->tm_sec);
-        printf("  Hashrate: %.2f MH/s,", megahash);
-        printf(" Accepted %d, Rejected %d", accepted_copy, rejected_copy);
-        if(!server_is_online) printf(", server ping timeout\n");
-        else printf("\n");
+        printf("\n");
+        if(server_is_online)
+            print_formatted_log("rprt", "Hashrate: %.2f MH/s, Accepted %d, Rejected %d", megahash, accepted_copy, rejected_copy);
+        else
+            print_formatted_log("rprt", "Hashrate: %.2f MH/s, Accepted %d, Rejected %d, server ping timeout", megahash, accepted_copy, rejected_copy);
+        printf("\n");
     }
 
     return 0;
