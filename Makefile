@@ -4,16 +4,14 @@ else
 	libs := -lcrypto -pthread
 endif
 
+CFLAGS := -O3 -Wall
 SRC_FILES := $(wildcard src/*.c)
 
-nonceMiner: $(filter-out src/nonceMiner_minimal.c, $(SRC_FILES)) | bin
-	gcc $^ -O3 -Wall -o bin/nonceMiner $(libs)
+nonceMiner: $(SRC_FILES) | bin
+	gcc $^ $(CFLAGS) -o bin/$@ $(libs)
 
-nonceMiner_minimal: $(filter-out src/nonceMiner.c, $(SRC_FILES)) | bin
-	gcc $^ -O3 -Wall -o bin/nonceMiner_minimal $(libs)
-
-nonceMiner_minimal_debug: $(filter-out src/nonceMiner.c, $(SRC_FILES)) | bin
-	gcc $^ -g -Wall -o bin/nonceMiner_minimal_debug $(libs)
+nonceMiner_minimal: $(filter-out src/nonceMiner.c, $(SRC_FILES)) test/nonceMiner_minimal.c | bin
+	gcc $^ $(CFLAGS) -o bin/$@ $(libs)
 
 bin:
 	mkdir bin

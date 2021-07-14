@@ -24,7 +24,7 @@
     #define SLEEP(seconds) sleep(seconds)
 #endif
 
-#include "mine_DUCO_S1.h"
+#include "../src/mine_DUCO_S1.h"
 #define USERNAME "revox"
 
 int main(){
