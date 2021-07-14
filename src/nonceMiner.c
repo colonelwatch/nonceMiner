@@ -258,16 +258,16 @@ void* ping_routine(void *arg){
     int len;
     char buf[128];
     while(1){
-        struct sockaddr_in server;
-        server.sin_addr.s_addr = inet_addr("51.15.127.80");
-        server.sin_family = AF_INET;
-        server.sin_port = htons(2814);
         unsigned int soc = socket(PF_INET, SOCK_STREAM, 0);
-        
         SET_TIMEOUT(soc, 16);
 
-        len = connect(soc, (struct sockaddr *)&server, sizeof(server));
+        // Resolves master server address and port then connects
+        struct addrinfo *dns_result;
+        len = getaddrinfo("server.duinocoin.com", "2814", NULL, &dns_result);
+        if(len != 0) goto on_error; // getaddrinfo() returns 0 on success
+        len = connect(soc, dns_result->ai_addr, dns_result->ai_addrlen);
         if(len == -1) goto on_error;
+        freeaddrinfo(dns_result);
 
         len = recv(soc, buf, 100, 0);
         if(len == -1 || len == 0) goto on_error;
@@ -276,10 +276,13 @@ void* ping_routine(void *arg){
         on_error:
         CLOSE(soc);
         // Updates server_is_online according to whether recv succeeded
-        if(len == -1 || len == 0) server_is_online = 0;
+        if(len == -1 || len == 0){
+            print_formatted_log("ping", "Warning pinging master server: Timed out or failed");
+            server_is_online = 0;
+        }
         else server_is_online = 1;
 
-        SLEEP(2);
+        SLEEP(16);
     }
 }
 
@@ -396,10 +399,7 @@ int main(int argc, char **argv){
         MUTEX_UNLOCK(&count_lock);
 
         printf("\n");
-        if(server_is_online)
         print_formatted_log("rprt", "Hashrate: %.2f MH/s, Accepted %d, Rejected %d", megahash, accepted_copy, rejected_copy);
-        else
-            print_formatted_log("rprt", "Hashrate: %.2f MH/s, Accepted %d, Rejected %d, server ping timeout", megahash, accepted_copy, rejected_copy);
         printf("\n");
     }
 
