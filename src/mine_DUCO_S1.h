@@ -1,3 +1,6 @@
+#ifndef MINE_DUCO_S1_H
+#define MINE_DUCO_S1_H
+
 #include <stdlib.h>
 #include <openssl/sha.h>
 
@@ -41,3 +44,5 @@ long mine_DUCO_S1(
 #ifdef __cplusplus 
 } 
 #endif 
+
+#endif

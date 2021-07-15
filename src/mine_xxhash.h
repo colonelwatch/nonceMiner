@@ -1,3 +1,6 @@
+#ifndef MINE_XXHASH_H
+#define MINE_XXHASH_H
+
 #define XXH_INLINE_ALL
 #include "utils/xxhash.h"
 #include "utils/counter.h"
@@ -40,3 +43,5 @@ long mine_xxhash(
 #ifdef __cplusplus 
 } 
 #endif 
+
+#endif
