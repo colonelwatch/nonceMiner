@@ -1,5 +1,5 @@
 /*
-    Minimum code required to solve a DUCO-S1 job, with no error handling or multithreading
+    Minimum code required to solve a xxhash job, with no error handling or multithreading
     and intended for educational/diagnostic purposes only.
     For extended use, please run the full version!
 */

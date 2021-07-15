@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
-#include <getopt.h>
+#include <getopt.h> // gcc-only library (TODO: offer cl.exe alternative?)
 #include <stdarg.h>
 #ifdef _WIN32 // Windows-unique preprocessor directives for compatiblity
     #ifdef _WIN32_WINNT
@@ -130,6 +130,19 @@ void print_formatted_log(const char* code, const char* format, ...){
     printf("\n");
 }
 
+void print_help(){
+    puts("nonceMiner v2.0.0 by colonelwatch");
+    puts("A miner applying hash midstate caching and other optimzations to the duinocoin project");
+    puts("Typical usage: nonceMiner -u <your username here> [OPTIONS]");
+    puts("Options:");
+    puts("  -h    Print the help message");
+    puts("  -a    Specify the hash algorithm {DUCO_S1, xxhash}");
+    puts("  -i    Job difficulty/intensity {LOW, MEDIUM, NET, EXTREME}");
+    puts("  -o    Node URL of the format <host>:<port>");
+    puts("  -u    Username for mining");
+    puts("  -t    Number of threads");
+}
+
 void* mining_routine(void* arg){
     int len;
     char buf[256], thread_code[16];
@@ -245,7 +258,7 @@ void* mining_routine(void* arg){
             t0 = t1;
 
             // Generates and sends result string
-            len = sprintf(buf, "%ld,%d,nonceMiner v1.4.2,%s\n", nonce, local_hashrate, identifier);
+            len = sprintf(buf, "%ld,%d,nonceMiner v2.0.0,%s\n", nonce, local_hashrate, identifier);
             len = send(soc, buf, len, 0);
             if(len == -1){
                 SPRINT_SOCK_ERRNO(buf, sizeof(buf), SOCK_ERRNO);
@@ -330,8 +343,11 @@ int main(int argc, char **argv){
     int opt;
     opterr = 0; // Disables default getopt error messages
 
-    while((opt = getopt(argc, argv, "a:i:o:u:w:t:")) != -1){
+    while((opt = getopt(argc, argv, "ha:i:o:u:w:t:")) != -1){
         switch(opt){
+            case 'h':
+                print_help();
+                return 0;
             case 'a':
                 if(strcmp(optarg, "DUCO_S1") == 0) using_xxhash = 0;
                 else if(strcmp(optarg, "xxhash") == 0) using_xxhash = 1;
@@ -405,7 +421,7 @@ int main(int argc, char **argv){
     else
         job_request_len = sprintf(job_request, "JOB,%s,%s\n", username, diff_string);
 
-    printf("Initializing nonceMiner v1.4.2...\n");
+    printf("Initializing nonceMiner v2.0.0...\n");
     printf("Configured with username '%s', ", username);
     printf("identifier '%s', ", identifier);
     printf("difficulty '%s', ", diff_string);

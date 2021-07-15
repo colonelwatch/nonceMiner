@@ -9,13 +9,33 @@ This program used to be written in Python with some C wrapped in Cython, but I h
 ## Running
 The nonceMiner binary is dependent on OpenSSL. The OpenSSL light binary is availible for Windows on [slproweb.com](https://slproweb.com/products/Win32OpenSSL.html), and this usually comes pre-installed on Linux.
 
+The binary is executable with the following options.
+
+```
+Options:
+  -h    Print the help message
+  -a    Specify the hash algorithm {DUCO_S1, xxhash}
+  -i    Job difficulty/intensity {LOW, MEDIUM, NET, EXTREME}
+  -o    Node URL of the format <host>:<port>
+  -u    Username for mining
+  -t    Number of threads
+```
+
+Please note that the xxhash mode is additionally up to five times faster, but the server imposes a per-thread hashrate limit of 0.9 MH/s. Exceeding this limit will cause shares to be rejected.
+
 ## Compiling
 I compiled this before in Windows 10 and WSL2 (Ubuntu 20.04 LTS), so results outside these environments may vary.
 
 Prerequisites: `gcc` (MinGW on Windows), `libssl-dev` (at least a development OpenSSL binary in Windows, I used the [slproweb.com](https://slproweb.com/products/Win32OpenSSL.html) copy, *not the "light" binary*)
 
 1) Call `make nonceMiner` in the repo directory
-2) Execute `./bin/nonceMiner` in the repo directory, or pull the compiled binary from `bin`
+2) Execute `./bin/nonceMiner -u <your username here>` in the repo directory, or pull the compiled binary from `bin`
+
+Additionally, the following test programs are available:
+* `benchmark` - Evaluate DUCO-S1 and xxhash performance on your machine
+* `nonceMiner_minimal` - A minimal implementation of DUCO-S1 with no error handling or multithreading
+* `nonceMiner_minimal_xxhash` - A minimal implementation of xxhash with no error handling or multithreading
+To compile one of them, just `make` with its program name.
 
 ## Attribution
 This project uses SHA-1 code from OpenSSL.
@@ -73,4 +93,41 @@ This project uses SHA-1 code from OpenSSL.
  * Hudson (tjh@cryptsoft.com).
  *
  */
- ```
+```
+
+This project uses xxhash.
+```
+/*
+ * xxHash - Extremely Fast Hash algorithm
+ * Copyright (C) 2012-2020 Yann Collet
+ *
+ * BSD 2-Clause License (https://www.opensource.org/licenses/bsd-license.php)
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are
+ * met:
+ *
+ *    * Redistributions of source code must retain the above copyright
+ *      notice, this list of conditions and the following disclaimer.
+ *    * Redistributions in binary form must reproduce the above
+ *      copyright notice, this list of conditions and the following disclaimer
+ *      in the documentation and/or other materials provided with the
+ *      distribution.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ * You can contact the author at:
+ *   - xxHash homepage: https://www.xxhash.com
+ *   - xxHash source repository: https://github.com/Cyan4973/xxHash
+ */
+```
