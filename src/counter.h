@@ -1,3 +1,6 @@
+#ifndef COUNTER_H
+#define COUNTER_H
+
 #include <string.h>
 
 #include "table.h"
@@ -17,3 +20,5 @@ void increment_counter(struct counter_state *state);
 int count_digits(long num);
 void sprint_4_digits(char *buf, int num);
 const char *lookup_4_digits(int num);
+
+#endif

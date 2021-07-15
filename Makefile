@@ -15,6 +15,9 @@ nonceMiner: $(SRC_FILES) | bin
 nonceMiner_minimal: $(filter-out src/nonceMiner.c, $(SRC_FILES)) test/nonceMiner_minimal.c | bin
 	gcc $^ $(CFLAGS) -o bin/$@ $(libs)
 
+nonceMiner_minimal_xxhash: $(filter-out src/nonceMiner.c, $(SRC_FILES)) test/nonceMiner_minimal_xxhash.c | bin
+	gcc $^ $(CFLAGS) -o bin/$@ $(libs)
+
 benchmark: $(filter-out src/nonceMiner.c, $(SRC_FILES)) test/benchmark.c | bin
 	gcc $^ $(CFLAGS) -o bin/$@ $(openssl_libs) -lm
 

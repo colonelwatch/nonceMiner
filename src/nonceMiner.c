@@ -95,6 +95,7 @@
 #endif
 
 #include "mine_DUCO_S1.h"
+#include "mine_xxhash.h"
 
 struct _thread_resources{
     int thread_id;
@@ -105,6 +106,7 @@ enum Intensity {LOW, MEDIUM, NET, EXTREME};
 
 MUTEX_T count_lock; // Protects access to shares counters
 int server_is_online = 1;
+int using_xxhash = 0;
 int shared_accepted = 0, shared_rejected = 0;
 int job_request_len;
 char job_request[256];
@@ -133,7 +135,7 @@ void* mining_routine(void* arg){
     char buf[256], thread_code[16];
     TIMESTAMP_T t1, t0;
     struct _thread_resources *shared_data = arg;
-    sprintf(thread_code, "cpu%1d", shared_data->thread_id);
+    sprintf(thread_code, "cpu%d", shared_data->thread_id);
     while(1){
         unsigned int soc = socket(PF_INET, SOCK_STREAM, 0);
         SET_TIMEOUT(soc, 16);
@@ -193,25 +195,47 @@ void* mining_routine(void* arg){
 
             int diff;
             long nonce;
-            if(buf[40] == ','){ // If the prefix is a SHA1 hex digest (40 chars long)...
-                diff = atoi((const char*) &buf[82]);
-                print_formatted_log(thread_code, "New job from %s with difficulty %d", server_address, diff);
-                nonce = mine_DUCO_S1(
-                    (const unsigned char*) &buf[0],
-                    40,
-                    (const unsigned char*) &buf[41],
-                    diff
-                );
+            if(using_xxhash){
+                if(buf[40] == ','){ // If the prefix is a SHA1 hex digest (40 chars long)...
+                    diff = atoi((const char*) &buf[58]);
+                    nonce = mine_xxhash(
+                        (const unsigned char*) &buf[0],
+                        40,
+                        (const unsigned char*) &buf[41],
+                        diff
+                    );
+                }
+                else{ // Else the prefix is probably an XXHASH hex digest (16 chars long)...
+                    diff = atoi((const char*) &buf[34]);
+                    nonce = mine_xxhash(
+                        (const unsigned char*) &buf[0],
+                        16,
+                        (const unsigned char*) &buf[17],
+                        diff
+                    );
+                }
             }
-            else{ // Else the prefix is probably an XXHASH hex digest (16 chars long)...
-                diff = atoi((const char*) &buf[58]);
-                print_formatted_log(thread_code, "New job from %s with difficulty %d", server_address, diff);
-                nonce = mine_DUCO_S1(
-                    (const unsigned char*) &buf[0],
-                    16,
-                    (const unsigned char*) &buf[17],
-                    diff
-                );
+            else{
+                if(buf[40] == ','){ // If the prefix is a SHA1 hex digest (40 chars long)...
+                    diff = atoi((const char*) &buf[82]);
+                    print_formatted_log(thread_code, "New job from %s with difficulty %d", server_address, diff);
+                    nonce = mine_DUCO_S1(
+                        (const unsigned char*) &buf[0],
+                        40,
+                        (const unsigned char*) &buf[41],
+                        diff
+                    );
+                }
+                else{ // Else the prefix is probably an XXHASH hex digest (16 chars long)...
+                    diff = atoi((const char*) &buf[58]);
+                    print_formatted_log(thread_code, "New job from %s with difficulty %d", server_address, diff);
+                    nonce = mine_DUCO_S1(
+                        (const unsigned char*) &buf[0],
+                        16,
+                        (const unsigned char*) &buf[17],
+                        diff
+                    );
+                }
             }
             
             // Calculates hashrate to report back to server
@@ -306,8 +330,16 @@ int main(int argc, char **argv){
     int opt;
     opterr = 0; // Disables default getopt error messages
 
-    while((opt = getopt(argc, argv, "i:o:u:w:t:")) != -1){
+    while((opt = getopt(argc, argv, "a:i:o:u:w:t:")) != -1){
         switch(opt){
+            case 'a':
+                if(strcmp(optarg, "DUCO_S1") == 0) using_xxhash = 0;
+                else if(strcmp(optarg, "xxhash") == 0) using_xxhash = 1;
+                else{
+                    fprintf(stderr, "Option -a requires an argument from the set {DUCO_S1, xxhash}");
+                    return 1;
+                }
+                break;
             case 'i':
                 if(strcmp(optarg, "LOW") == 0) diff = LOW;
                 else if(strcmp(optarg, "MEDIUM") == 0) diff = MEDIUM;
@@ -339,7 +371,7 @@ int main(int argc, char **argv){
                 }
                 break;
             case '?':
-                if(optopt == 'i' || optopt == 'o' || optopt == 'u' || optopt == 'w' || optopt == 't')
+                if(optopt == 'a' || optopt == 'i' || optopt == 'o' || optopt == 'u' || optopt == 'w' || optopt == 't')
                     fprintf(stderr, "Option -%c requires an argument.\n", optopt);
                 else
                     fprintf(stderr, "Unknown option '-%c'.\n", optopt);
@@ -368,13 +400,18 @@ int main(int argc, char **argv){
             strcpy(diff_string, "EXTREME");
             break;
     }
-    job_request_len = sprintf(job_request, "JOB,%s,%s\n", username, diff_string);
+    if(using_xxhash)
+        job_request_len = sprintf(job_request, "JOBXX,%s\n", username);
+    else
+        job_request_len = sprintf(job_request, "JOB,%s,%s\n", username, diff_string);
 
     printf("Initializing nonceMiner v1.4.2...\n");
     printf("Configured with username '%s', ", username);
     printf("identifier '%s', ", identifier);
     printf("difficulty '%s', ", diff_string);
     printf("and %d thread(s).\n", n_threads);
+    if(using_xxhash)
+        printf("Running in xxhash mode. WARNING: Per-thread hashrates over 0.9 MH/s may be rejected.\n");
     printf("Starting threads...\n");
 
     struct _thread_resources *thread_data_arr = calloc(n_threads, sizeof(struct _thread_resources));

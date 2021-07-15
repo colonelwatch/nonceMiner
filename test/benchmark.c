@@ -23,13 +23,19 @@
 #endif
 
 #include "../src/mine_DUCO_S1.h"
+#include "../src/mine_xxhash.h"
 
 #define AVERAGE_COUNT 10
 
-const unsigned char prefix[] = "c5a8787a9c6392560df7ed9c0f253f89092d8cd2";
-const unsigned char target[] = "36c098fecc3e746247723bd74a3f0acf22b01985";
-const int diff = 950000;
-const int result = 23373972;
+const unsigned char DUCO_S1_prefix[] = "c5a8787a9c6392560df7ed9c0f253f89092d8cd2";
+const unsigned char DUCO_S1_target[] = "36c098fecc3e746247723bd74a3f0acf22b01985";
+const int DUCO_S1_diff = 950000;
+const int DUCO_S1_result = 23373972;
+
+const unsigned char xxhash_prefix[] = "cd062b0305a3de29b1a8bc5fb928e48d849804c2";
+const unsigned char xxhash_target[] = "9c31d2ef11adc708";
+const int xxhash_diff = 750000;
+const int xxhash_result = 21504575;
 
 double average(double *arr, int arr_len){
     double sum = 0;
@@ -53,11 +59,12 @@ int main(){
     int diff_ms_arr[AVERAGE_COUNT];
     double megahash_arr[AVERAGE_COUNT], megahash, megahash_error;
 
+
     printf("Benchmarking mine_DUCO_S1... ");
 
     for(int i = 0; i < AVERAGE_COUNT; i++){
         GET_TIME(&t0);
-        nonce = mine_DUCO_S1(prefix, 40, target, diff);
+        nonce = mine_DUCO_S1(DUCO_S1_prefix, 40, DUCO_S1_target, DUCO_S1_diff);
         GET_TIME(&t1);
         diff_ms_arr[i] = DIFF_TIME_MS(&t1, &t0);
     }
@@ -66,8 +73,27 @@ int main(){
     megahash = average(megahash_arr, AVERAGE_COUNT);
     megahash_error = std_dev(megahash_arr, AVERAGE_COUNT);
 
-    if(nonce == result) printf("Passed, ");
+    if(nonce == DUCO_S1_result) printf("Passed, ");
     else printf("Failed, ");
     printf("with speed %.2f +/- %.4f MH/s\n", megahash, megahash_error);
-    printf("Approximate four-core performance: %.2f +/- %.4f MH/s", megahash*4, megahash_error*4);
+    printf("Approximate four-core performance: %.2f +/- %.4f MH/s\n", megahash*4, megahash_error*4);
+
+
+    printf("Benchmarking xxhash... ");
+
+    for(int i = 0; i < AVERAGE_COUNT; i++){
+        GET_TIME(&t0);
+        nonce = mine_xxhash(xxhash_prefix, 40, xxhash_target, xxhash_diff);
+        GET_TIME(&t1);
+        diff_ms_arr[i] = DIFF_TIME_MS(&t1, &t0);
+    }
+    for(int i = 0; i < AVERAGE_COUNT; i++)
+        megahash_arr[i] = (double)nonce*1000/diff_ms_arr[i]/1000000;
+    megahash = average(megahash_arr, AVERAGE_COUNT);
+    megahash_error = std_dev(megahash_arr, AVERAGE_COUNT);
+
+    if(nonce == xxhash_result) printf("Passed, ");
+    else printf("Failed, ");
+    printf("with speed %.2f +/- %.4f MH/s\n", megahash, megahash_error);
+    printf("Approximate four-core performance: %.2f +/- %.4f MH/s\n", megahash*4, megahash_error*4);
 }
