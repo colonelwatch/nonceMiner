@@ -7,7 +7,7 @@ else
 endif
 
 CFLAGS := -O3 -Wall
-SRC_FILES := $(wildcard src/*.c)
+SRC_FILES := $(wildcard src/*.c) $(wildcard src/**/*.c)
 
 nonceMiner: $(SRC_FILES) | bin
 	gcc $^ $(CFLAGS) -o bin/$@ $(libs)

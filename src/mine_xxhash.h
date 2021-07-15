@@ -1,6 +1,6 @@
 #define XXH_INLINE_ALL
-#include "xxhash.h"
-#include "counter.h"
+#include "utils/xxhash.h"
+#include "utils/counter.h"
 
 #define XXHASH_SIZE 8
 

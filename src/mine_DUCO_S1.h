@@ -1,7 +1,7 @@
 #include <stdlib.h>
 #include <openssl/sha.h>
 
-#include "counter.h"
+#include "utils/counter.h"
 
 #define DUCO_S1_SIZE 20
 
