@@ -22,6 +22,7 @@
         ((t1_ptr)->tv_sec-(t0_ptr)->tv_sec)*1000+((t1_ptr)->tv_nsec-(t0_ptr)->tv_nsec)/1000000
 #endif
 
+#include "../src/utils/opencl.h"
 #include "../src/mine_DUCO_S1.h"
 #include "../src/mine_xxhash.h"
 
@@ -58,6 +59,32 @@ int main(){
     TIMESTAMP_T t0, t1;
     int diff_ms_arr[AVERAGE_COUNT];
     double megahash_arr[AVERAGE_COUNT], megahash, megahash_error;
+
+    
+    printf("Benchmarking mine_DUCO_S1_OpenCL... ");
+
+    char *filenames[3] = {
+        "OpenCL/buffer_structs_template.cl",
+        "OpenCL/sha1.cl",
+        "OpenCL/duco_s1.cl"
+    };
+    init_OpenCL();
+    build_source(filenames, 3);
+
+    for(int i = 0; i < AVERAGE_COUNT; i++){
+        GET_TIME(&t0);
+        nonce = mine_DUCO_S1_OpenCL(DUCO_S1_prefix, 40, DUCO_S1_target, DUCO_S1_diff);
+        GET_TIME(&t1);
+        diff_ms_arr[i] = DIFF_TIME_MS(&t1, &t0);
+    }
+    for(int i = 0; i < AVERAGE_COUNT; i++)
+        megahash_arr[i] = (double)nonce*1000/diff_ms_arr[i]/1000000;
+    megahash = average(megahash_arr, AVERAGE_COUNT);
+    megahash_error = std_dev(megahash_arr, AVERAGE_COUNT);
+
+    if(nonce == DUCO_S1_result) printf("Passed, ");
+    else printf("Failed, ");
+    printf("with speed %.2f +/- %.4f MH/s\n", megahash, megahash_error);
 
 
     printf("Benchmarking mine_DUCO_S1... ");

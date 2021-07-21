@@ -62,5 +62,5 @@ void sprint_4_digits(char *buf, int num){
 }
 
 const char* lookup_4_digits(int num){
-    return table+4*num; // table is defined in table.c
+    return four_digit_table+4*num; // four_digit_table is defined in table.c
 }
