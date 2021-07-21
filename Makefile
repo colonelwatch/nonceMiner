@@ -15,14 +15,14 @@ endif
 CFLAGS := -O3 -Wall
 SRC_FILES := $(wildcard src/*.c) $(wildcard src/**/*.c)
 
-nonceMiner: $(SRC_FILES) | bin
+nonceMiner: $(SRC_FILES) | bin bin/OpenCL
 	gcc $^ $(CFLAGS) -o bin/$@ $(libs)
 	$(CPF) OpenCL$(PSEP)*.cl bin$(PSEP)OpenCL
 
-nonceMiner_minimal: $(filter-out src/nonceMiner.c, $(SRC_FILES)) test/nonceMiner_minimal.c | bin bin/OpenCL
+nonceMiner_minimal: $(filter-out src/nonceMiner.c, $(SRC_FILES)) test/nonceMiner_minimal.c | bin
 	gcc $^ $(CFLAGS) -o bin/$@ $(libs)
 
-nonceMiner_minimal_xxhash: $(filter-out src/nonceMiner.c, $(SRC_FILES)) test/nonceMiner_minimal_xxhash.c | bin bin/OpenCL
+nonceMiner_minimal_xxhash: $(filter-out src/nonceMiner.c, $(SRC_FILES)) test/nonceMiner_minimal_xxhash.c | bin
 	gcc $^ $(CFLAGS) -o bin/$@ $(libs)
 
 benchmark: $(filter-out src/nonceMiner.c, $(SRC_FILES)) test/benchmark.c | bin bin/OpenCL
