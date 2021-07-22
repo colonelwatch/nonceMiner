@@ -1,5 +1,6 @@
 #include "opencl.h"
 
+// global OpenCL context
 cl_device_id device_id;
 cl_context context;
 cl_command_queue command_queue;
@@ -21,8 +22,8 @@ int *correct_nonce;
 size_t check_nonce_n_workers;
 int iterate_size;
 
-// May be useful later in the OpenCL kernel
-unsigned char hex_to_int(char high_hex, char low_hex){
+
+unsigned char _hex_to_int(char high_hex, char low_hex){
     int sum = 0;
     switch(low_hex){
         case '0': sum += 0; break;
@@ -63,24 +64,24 @@ unsigned char hex_to_int(char high_hex, char low_hex){
     return sum;
 }
 
-void generate_expected(outbuf *expected, const char target_hexdigest[40]){
+void _generate_expected(outbuf *expected, const char target_hexdigest[40]){
     for(int j = 0; j < 5; j++){
         unsigned int num = 0;
         for(int k = 3; k >= 0; k--){
             char high_hex = target_hexdigest[j*8+k*2],
                  low_hex = target_hexdigest[j*8+k*2+1];
-            num |= hex_to_int(high_hex, low_hex) << k*8;
+            num |= _hex_to_int(high_hex, low_hex) << k*8;
         }
         expected->buffer[j] = num;
     }
 }
 
-void error_out(char* func_name, cl_int ret){
+void _error_out(char* func_name, cl_int ret){
     fprintf(stderr, "%s failed with error code %d\n", func_name, ret);
     abort();
 }
 
-void replace_string(char *buffer, const char *search, const char *replace){
+void _replace_string(char *buffer, const char *search, const char *replace){
     char *ptr = strstr(buffer, search);
     if(ptr){
         char *temp = malloc(MAX_SOURCE_SIZE);
@@ -91,25 +92,26 @@ void replace_string(char *buffer, const char *search, const char *replace){
     }
 }
 
+
 void init_OpenCL(){
     // Get platform and device information
     cl_platform_id platform_id;
     cl_int ret;
     ret = clGetPlatformIDs(1, &platform_id, NULL);
-    if(ret != CL_SUCCESS) error_out("clGetPlatformIDs", ret);
+    if(ret != CL_SUCCESS) _error_out("clGetPlatformIDs", ret);
     ret = clGetDeviceIDs(platform_id, CL_DEVICE_TYPE_GPU, 1, &device_id, NULL);
-    if(ret != CL_SUCCESS) error_out("clGetDeviceIDs", ret);
+    if(ret != CL_SUCCESS) _error_out("clGetDeviceIDs", ret);
 
     // Create an OpenCL context
     context = clCreateContext(NULL, 1, &device_id, NULL, NULL, &ret);
-    if(ret != CL_SUCCESS) error_out("clCreateContext", ret);
+    if(ret != CL_SUCCESS) _error_out("clCreateContext", ret);
 
     // Create a command queue
     command_queue = clCreateCommandQueue(context, device_id, 0, &ret);
-    if(ret != CL_SUCCESS) error_out("clCreateCommandQueue", ret);
+    if(ret != CL_SUCCESS) _error_out("clCreateCommandQueue", ret);
 }
 
-void build_source(char **source_files, int n_files){
+void build_OpenCL_source(char **source_files, int n_files){
     // Load the buffer_structs_template.cl into source_str
     FILE *fp;
     char *source_str = (char*)malloc(MAX_SOURCE_SIZE),
@@ -132,22 +134,22 @@ void build_source(char **source_files, int n_files){
     }
 
     // Configure the buffers by replacing placeholders
-    replace_string(source_str, "<word_size>", "4");
-    replace_string(source_str, "<inBufferSize_bytes>", "50");
-    replace_string(source_str, "<outBufferSize_bytes>", "20");
-    replace_string(source_str, "<saltBufferSize_bytes>", "0");
-    replace_string(source_str, "<ctBufferSize_bytes>", "0");
-    replace_string(source_str, "<hashBlockSize_bits>", "512");
-    replace_string(source_str, "<hashDigestSize_bits>", "160");
-    replace_string(source_str, "mod(j,wordSize)", "j\%wordSize");
-    replace_string(source_str, "\r\n", "\n"); // convert out of Windows format
+    _replace_string(source_str, "<word_size>", "4");
+    _replace_string(source_str, "<inBufferSize_bytes>", "50");
+    _replace_string(source_str, "<outBufferSize_bytes>", "20");
+    _replace_string(source_str, "<saltBufferSize_bytes>", "0");
+    _replace_string(source_str, "<ctBufferSize_bytes>", "0");
+    _replace_string(source_str, "<hashBlockSize_bits>", "512");
+    _replace_string(source_str, "<hashDigestSize_bits>", "160");
+    _replace_string(source_str, "mod(j,wordSize)", "j\%wordSize");
+    _replace_string(source_str, "\r\n", "\n"); // convert out of Windows format
 
-    source_len = strlen(source_str); // deal with how replace_string doesn't update length
+    source_len = strlen(source_str); // deal with how _replace_string doesn't update length
 
     // Create an OpenCL program from the source string
     cl_int ret;
     program = clCreateProgramWithSource(context, 1, (const char**)&source_str, (const size_t*)&source_len, &ret);
-    if(ret != CL_SUCCESS) error_out("clCreateProgramWithSource", ret);
+    if(ret != CL_SUCCESS) _error_out("clCreateProgramWithSource", ret);
     ret = clBuildProgram(program, 1, &device_id, NULL, NULL, NULL);
 
     if (ret == CL_BUILD_PROGRAM_FAILURE) {
@@ -162,108 +164,50 @@ void build_source(char **source_files, int n_files){
         printf("%s\n", log);
     }
 
-    if(ret != CL_SUCCESS) error_out("clBuildProgram", ret);
+    if(ret != CL_SUCCESS) _error_out("clBuildProgram", ret);
 
     free(source_str);
     free(temp_str);
 }
 
-void build_sha1_kernel(size_t num_threads){
-    // Create the OpenCL kernel
-    cl_int ret;
-    sha1_kernel = clCreateKernel(program, "hash_main", &ret);
-    if(ret != CL_SUCCESS) error_out("clCreateKernel", ret);
-
-    sha1_in_mem = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, num_threads*sizeof(inbuf), NULL, &ret);
-    if(ret != CL_SUCCESS) error_out("clCreateBuffer", ret);
-    sha1_out_mem = clCreateBuffer(context, CL_MEM_WRITE_ONLY | CL_MEM_ALLOC_HOST_PTR, num_threads*sizeof(outbuf), NULL, &ret);
-    if(ret != CL_SUCCESS) error_out("clCreateBuffer", ret);
-    clFlush(command_queue);
-    clFinish(command_queue);
-
-    ret = clSetKernelArg(sha1_kernel, 0, sizeof(cl_mem), &sha1_in_mem);
-    ret = clSetKernelArg(sha1_kernel, 1, sizeof(cl_mem), &sha1_out_mem);
-
-    sha1_n_workers = num_threads;
-}
-
-void feed_sha1_kernel(inbuf *input){
-    int ret;
-    sha1_in = (inbuf*)clEnqueueMapBuffer(command_queue, sha1_in_mem, CL_TRUE, CL_MAP_WRITE, 0, sha1_n_workers*sizeof(inbuf), 0, NULL, NULL, &ret);
-    if(ret != CL_SUCCESS) error_out("clEnqueueMapBuffer", ret);
-    clFlush(command_queue);
-    clFinish(command_queue);
-
-    memcpy(sha1_in, input, sha1_n_workers*sizeof(inbuf));
-
-    ret = clEnqueueUnmapMemObject(command_queue, sha1_in_mem, sha1_in, 0, NULL, NULL);
-    if(ret != CL_SUCCESS) error_out("clEnqueueUnmapMemObject", ret);
-    clFlush(command_queue);
+void await_OpenCL(){
     clFinish(command_queue);
 }
 
-void launch_sha1_kernel(){
-    cl_int ret;
-    ret = clEnqueueNDRangeKernel(command_queue, sha1_kernel, 1, NULL, &sha1_n_workers, NULL, 0, NULL, NULL);
-    if(ret != CL_SUCCESS) error_out("clEnqueueNDRangeKernel", ret);
-    clFlush(command_queue);
-}
-
-void dump_sha1_kernel(outbuf *output){
-    int ret;
-    sha1_out = (outbuf*)clEnqueueMapBuffer(command_queue, sha1_out_mem, CL_TRUE, CL_MAP_READ, 0, sha1_n_workers*sizeof(outbuf), 0, NULL, NULL, &ret);
-    if(ret != CL_SUCCESS) error_out("clEnqueueMapBuffer", ret);
-    clFlush(command_queue);
-    clFinish(command_queue);
-
-    memcpy(output, sha1_out, sha1_n_workers*sizeof(outbuf));
-
-    ret = clEnqueueUnmapMemObject(command_queue, sha1_out_mem, sha1_out, 0, NULL, NULL);
-    if(ret != CL_SUCCESS) error_out("clEnqueueUnmapMemObject", ret);
-    clFlush(command_queue);
-    clFinish(command_queue);
-}
-
-void apply_sha1_kernel(inbuf *input, outbuf *output){
-    feed_sha1_kernel(input);
-    launch_sha1_kernel();
-    await_OpenCL();
-    dump_sha1_kernel(output);
-}
 
 void build_check_nonce_kernel(size_t num_threads, const char *prefix,  const char *target, int auto_iterate){
     // Create the OpenCL kernel
     cl_int ret;
     check_nonce_kernel = clCreateKernel(program, "check_nonce", &ret);
-    if(ret != CL_SUCCESS) error_out("clCreateKernel", ret);
+    if(ret != CL_SUCCESS) _error_out("clCreateKernel", ret);
 
     // Set the kernel arguments
     check_nonce_n_workers = num_threads;
     if(auto_iterate) iterate_size = num_threads;
     else iterate_size = 0;
-    generate_expected(&check_nonce_expected_hash, target);
+    _generate_expected(&check_nonce_expected_hash, target);
 
     nonce_int_mem = clCreateBuffer(context, CL_MEM_ALLOC_HOST_PTR, check_nonce_n_workers*sizeof(int), NULL, &ret);
-    if(ret != CL_SUCCESS) error_out("clCreateBuffer", ret);
+    if(ret != CL_SUCCESS) _error_out("clCreateBuffer", ret);
     lut_mem = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(three_digit_table), (void*)three_digit_table, &ret);
-    if(ret != CL_SUCCESS) error_out("clCreateBuffer", ret);
+    if(ret != CL_SUCCESS) _error_out("clCreateBuffer", ret);
     prefix_mem = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, 40*sizeof(char), (void*)prefix, &ret);
-    if(ret != CL_SUCCESS) error_out("clCreateBuffer", ret);
+    if(ret != CL_SUCCESS) _error_out("clCreateBuffer", ret);
     target_mem = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(outbuf), (void*)&check_nonce_expected_hash, &ret);
-    if(ret != CL_SUCCESS) error_out("clCreateBuffer", ret);
+    if(ret != CL_SUCCESS) _error_out("clCreateBuffer", ret);
     correct_nonce_mem = clCreateBuffer(context, CL_MEM_WRITE_ONLY | CL_MEM_ALLOC_HOST_PTR, sizeof(int), NULL, &ret);
-    if(ret != CL_SUCCESS) error_out("clCreateBuffer", ret);
+    if(ret != CL_SUCCESS) _error_out("clCreateBuffer", ret);
     clFlush(command_queue);
     clFinish(command_queue);
 
     // Initialize correct_nonce_mem with -1
     correct_nonce = (int*)clEnqueueMapBuffer(command_queue, correct_nonce_mem, CL_TRUE, CL_MAP_WRITE, 0, sizeof(int), 0, NULL, NULL, &ret);
-    if(ret != CL_SUCCESS) error_out("clEnqueueMapBuffer", ret);
+    if(ret != CL_SUCCESS) _error_out("clEnqueueMapBuffer", ret);
     clFlush(command_queue);
     clFinish(command_queue);
     *correct_nonce = -1;
     ret = clEnqueueUnmapMemObject(command_queue, correct_nonce_mem, correct_nonce, 0, NULL, NULL);
-    if(ret != CL_SUCCESS) error_out("clEnqueueUnmapMemObject", ret);
+    if(ret != CL_SUCCESS) _error_out("clEnqueueUnmapMemObject", ret);
     clFlush(command_queue);
     clFinish(command_queue);
 
@@ -278,14 +222,14 @@ void build_check_nonce_kernel(size_t num_threads, const char *prefix,  const cha
 void feed_check_nonce_kernel(int *input){
     int ret;
     nonce_int = (int*)clEnqueueMapBuffer(command_queue, nonce_int_mem, CL_TRUE, CL_MAP_WRITE, 0, check_nonce_n_workers*sizeof(int), 0, NULL, NULL, &ret);
-    if(ret != CL_SUCCESS) error_out("clEnqueueMapBuffer", ret);
+    if(ret != CL_SUCCESS) _error_out("clEnqueueMapBuffer", ret);
     clFlush(command_queue);
     clFinish(command_queue);
 
     memcpy(nonce_int, input, check_nonce_n_workers*sizeof(int));
 
     ret = clEnqueueUnmapMemObject(command_queue, nonce_int_mem, nonce_int, 0, NULL, NULL);
-    if(ret != CL_SUCCESS) error_out("clEnqueueUnmapMemObject", ret);
+    if(ret != CL_SUCCESS) _error_out("clEnqueueUnmapMemObject", ret);
     clFlush(command_queue);
     clFinish(command_queue);
 }
@@ -293,21 +237,21 @@ void feed_check_nonce_kernel(int *input){
 void launch_check_nonce_kernel(){
     cl_int ret;
     ret = clEnqueueNDRangeKernel(command_queue, check_nonce_kernel, 1, NULL, &check_nonce_n_workers, NULL, 0, NULL, NULL);
-    if(ret != CL_SUCCESS) error_out("clEnqueueNDRangeKernel", ret);
+    if(ret != CL_SUCCESS) _error_out("clEnqueueNDRangeKernel", ret);
     clFlush(command_queue);
 }
 
 void dump_check_nonce_kernel(int *output){
     int ret;
     correct_nonce = (int*)clEnqueueMapBuffer(command_queue, correct_nonce_mem, CL_TRUE, CL_MAP_READ, 0, sizeof(int), 0, NULL, NULL, &ret);
-    if(ret != CL_SUCCESS) error_out("clEnqueueMapBuffer", ret);
+    if(ret != CL_SUCCESS) _error_out("clEnqueueMapBuffer", ret);
     clFlush(command_queue);
     clFinish(command_queue);
 
     memcpy(output, correct_nonce, sizeof(int));
 
     ret = clEnqueueUnmapMemObject(command_queue, correct_nonce_mem, correct_nonce, 0, NULL, NULL);
-    if(ret != CL_SUCCESS) error_out("clEnqueueUnmapMemObject", ret);
+    if(ret != CL_SUCCESS) _error_out("clEnqueueUnmapMemObject", ret);
     clFlush(command_queue);
     clFinish(command_queue);
 }
@@ -328,6 +272,66 @@ void deconstruct_check_nonce_kernel(){
     clReleaseKernel(check_nonce_kernel);
 }
 
-void await_OpenCL(){
+
+void build_sha1_kernel(size_t num_threads){
+    // Create the OpenCL kernel
+    cl_int ret;
+    sha1_kernel = clCreateKernel(program, "hash_main", &ret);
+    if(ret != CL_SUCCESS) _error_out("clCreateKernel", ret);
+
+    sha1_in_mem = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, num_threads*sizeof(inbuf), NULL, &ret);
+    if(ret != CL_SUCCESS) _error_out("clCreateBuffer", ret);
+    sha1_out_mem = clCreateBuffer(context, CL_MEM_WRITE_ONLY | CL_MEM_ALLOC_HOST_PTR, num_threads*sizeof(outbuf), NULL, &ret);
+    if(ret != CL_SUCCESS) _error_out("clCreateBuffer", ret);
+    clFlush(command_queue);
     clFinish(command_queue);
+
+    ret = clSetKernelArg(sha1_kernel, 0, sizeof(cl_mem), &sha1_in_mem);
+    ret = clSetKernelArg(sha1_kernel, 1, sizeof(cl_mem), &sha1_out_mem);
+
+    sha1_n_workers = num_threads;
+}
+
+void feed_sha1_kernel(inbuf *input){
+    int ret;
+    sha1_in = (inbuf*)clEnqueueMapBuffer(command_queue, sha1_in_mem, CL_TRUE, CL_MAP_WRITE, 0, sha1_n_workers*sizeof(inbuf), 0, NULL, NULL, &ret);
+    if(ret != CL_SUCCESS) _error_out("clEnqueueMapBuffer", ret);
+    clFlush(command_queue);
+    clFinish(command_queue);
+
+    memcpy(sha1_in, input, sha1_n_workers*sizeof(inbuf));
+
+    ret = clEnqueueUnmapMemObject(command_queue, sha1_in_mem, sha1_in, 0, NULL, NULL);
+    if(ret != CL_SUCCESS) _error_out("clEnqueueUnmapMemObject", ret);
+    clFlush(command_queue);
+    clFinish(command_queue);
+}
+
+void launch_sha1_kernel(){
+    cl_int ret;
+    ret = clEnqueueNDRangeKernel(command_queue, sha1_kernel, 1, NULL, &sha1_n_workers, NULL, 0, NULL, NULL);
+    if(ret != CL_SUCCESS) _error_out("clEnqueueNDRangeKernel", ret);
+    clFlush(command_queue);
+}
+
+void dump_sha1_kernel(outbuf *output){
+    int ret;
+    sha1_out = (outbuf*)clEnqueueMapBuffer(command_queue, sha1_out_mem, CL_TRUE, CL_MAP_READ, 0, sha1_n_workers*sizeof(outbuf), 0, NULL, NULL, &ret);
+    if(ret != CL_SUCCESS) _error_out("clEnqueueMapBuffer", ret);
+    clFlush(command_queue);
+    clFinish(command_queue);
+
+    memcpy(output, sha1_out, sha1_n_workers*sizeof(outbuf));
+
+    ret = clEnqueueUnmapMemObject(command_queue, sha1_out_mem, sha1_out, 0, NULL, NULL);
+    if(ret != CL_SUCCESS) _error_out("clEnqueueUnmapMemObject", ret);
+    clFlush(command_queue);
+    clFinish(command_queue);
+}
+
+void apply_sha1_kernel(inbuf *input, outbuf *output){
+    feed_sha1_kernel(input);
+    launch_sha1_kernel();
+    await_OpenCL();
+    dump_sha1_kernel(output);
 }

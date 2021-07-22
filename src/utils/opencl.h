@@ -21,15 +21,16 @@ typedef struct {
 
 extern inbuf *in;
 
-void init_OpenCL();
-void build_source(char **source_files, int n_files);
+// internal private functions
+unsigned char _hex_to_int(char high_hex, char low_hex);
+void _generate_expected(outbuf *expected, const char target_hexdigest[40]);
+void _error_out(char* func_name, cl_int ret);
+void _replace_string(char *buffer, const char *search, const char *replace);
 
-// SHA-1 kernel functions
-void build_sha1_kernel(size_t num_threads);
-void feed_sha1_kernel(inbuf *input);
-void launch_sha1_kernel();
-void dump_sha1_kernel(outbuf *output);
-void apply_sha1_kernel(inbuf *input, outbuf *output);
+// general OpenCL functions
+void init_OpenCL();
+void build_OpenCL_source(char **source_files, int n_files);
+void await_OpenCL();
 
 // check_nonce functions
 void build_check_nonce_kernel(size_t num_threads, const char *prefix, const char *target, int auto_iterate);
@@ -39,6 +40,11 @@ void dump_check_nonce_kernel(int *output);
 void apply_check_nonce_kernel(int *input, int *output);
 void deconstruct_check_nonce_kernel();
 
-void await_OpenCL();
+// SHA-1 kernel functions
+void build_sha1_kernel(size_t num_threads);
+void feed_sha1_kernel(inbuf *input);
+void launch_sha1_kernel();
+void dump_sha1_kernel(outbuf *output);
+void apply_sha1_kernel(inbuf *input, outbuf *output);
 
 #endif

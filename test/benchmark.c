@@ -69,7 +69,7 @@ int main(){
         "OpenCL/duco_s1.cl"
     };
     init_OpenCL();
-    build_source(filenames, 3);
+    build_OpenCL_source(filenames, 3);
 
     for(int i = 0; i < AVERAGE_COUNT; i++){
         GET_TIME(&t0);

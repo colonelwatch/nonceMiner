@@ -456,7 +456,7 @@ int main(int argc, char **argv){
             "OpenCL/duco_s1.cl"
         };
         init_OpenCL();
-        build_source(filenames, 3);
+        build_OpenCL_source(filenames, 3);
     }
     if(using_xxhash)
         printf("Running in xxhash mode. WARNING: Per-thread hashrates over 0.9 MH/s may be rejected.\n");
