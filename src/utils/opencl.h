@@ -19,7 +19,14 @@ typedef struct {
     cl_uint buffer[5];
 } outbuf;
 
-extern inbuf *in;
+// DUCO_S1 kernel context
+struct check_nonce_ctx{
+    cl_kernel kernel;
+    cl_mem nonce_int_mem, lut_mem, prefix_mem, target_mem, correct_nonce_mem;
+    outbuf expected_hash;
+    size_t n_workers;
+    int auto_iterate_size;
+};
 
 // internal private functions
 unsigned char _hex_to_int(char high_hex, char low_hex);
@@ -33,11 +40,11 @@ void build_OpenCL_source(char **source_files, int n_files);
 void await_OpenCL();
 
 // check_nonce functions
-void build_check_nonce_kernel(size_t num_threads, const char *prefix, const char *target, int auto_iterate);
-void feed_check_nonce_kernel(int *input);
-void launch_check_nonce_kernel();
-void dump_check_nonce_kernel(int *output);
-void apply_check_nonce_kernel(int *input, int *output);
-void deconstruct_check_nonce_kernel();
+void build_check_nonce_kernel(struct check_nonce_ctx *ctx, size_t num_threads, const char *prefix, const char *target, int auto_iterate);
+void feed_check_nonce_kernel(struct check_nonce_ctx *ctx, int *input);
+void launch_check_nonce_kernel(struct check_nonce_ctx *ctx);
+void dump_check_nonce_kernel(struct check_nonce_ctx *ctx, int *output);
+void apply_check_nonce_kernel(struct check_nonce_ctx *ctx, int *input, int *output);
+void deconstruct_check_nonce_kernel(struct check_nonce_ctx *ctx);
 
 #endif

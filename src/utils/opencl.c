@@ -6,15 +6,6 @@ cl_context context;
 cl_command_queue command_queue;
 cl_program program;
 
-// DUCO_S1 kernel context
-cl_kernel check_nonce_kernel;
-cl_mem nonce_int_mem, lut_mem, prefix_mem, target_mem, correct_nonce_mem;
-outbuf check_nonce_expected_hash;
-int *nonce_int;
-int *correct_nonce;
-size_t check_nonce_n_workers;
-int iterate_size;
-
 
 unsigned char _hex_to_int(char high_hex, char low_hex){
     int sum = 0;
@@ -168,99 +159,99 @@ void await_OpenCL(){
 }
 
 
-void build_check_nonce_kernel(size_t num_threads, const char *prefix,  const char *target, int auto_iterate){
+void build_check_nonce_kernel(struct check_nonce_ctx *ctx, size_t num_threads, const char *prefix, const char *target, int auto_iterate){
     // Create the OpenCL kernel
     cl_int ret;
-    check_nonce_kernel = clCreateKernel(program, "check_nonce", &ret);
+    ctx->kernel = clCreateKernel(program, "check_nonce", &ret);
     if(ret != CL_SUCCESS) _error_out("clCreateKernel", ret);
 
     // Set the kernel arguments
-    check_nonce_n_workers = num_threads;
-    if(auto_iterate) iterate_size = num_threads;
-    else iterate_size = 0;
-    _generate_expected(&check_nonce_expected_hash, target);
+    ctx->n_workers = num_threads;
+    if(auto_iterate) ctx->auto_iterate_size = num_threads;
+    else ctx->auto_iterate_size = 0;
+    _generate_expected(&(ctx->expected_hash), target);
 
-    nonce_int_mem = clCreateBuffer(context, CL_MEM_ALLOC_HOST_PTR, check_nonce_n_workers*sizeof(int), NULL, &ret);
+    ctx->nonce_int_mem = clCreateBuffer(context, CL_MEM_ALLOC_HOST_PTR, ctx->n_workers*sizeof(int), NULL, &ret);
     if(ret != CL_SUCCESS) _error_out("clCreateBuffer", ret);
-    lut_mem = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(three_digit_table), (void*)three_digit_table, &ret);
+    ctx->lut_mem = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(three_digit_table), (void*)three_digit_table, &ret);
     if(ret != CL_SUCCESS) _error_out("clCreateBuffer", ret);
-    prefix_mem = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, 40*sizeof(char), (void*)prefix, &ret);
+    ctx->prefix_mem = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, 40*sizeof(char), (void*)prefix, &ret);
     if(ret != CL_SUCCESS) _error_out("clCreateBuffer", ret);
-    target_mem = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(outbuf), (void*)&check_nonce_expected_hash, &ret);
+    ctx->target_mem = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(outbuf), (void*)&(ctx->expected_hash), &ret);
     if(ret != CL_SUCCESS) _error_out("clCreateBuffer", ret);
-    correct_nonce_mem = clCreateBuffer(context, CL_MEM_WRITE_ONLY | CL_MEM_ALLOC_HOST_PTR, sizeof(int), NULL, &ret);
+    ctx->correct_nonce_mem = clCreateBuffer(context, CL_MEM_WRITE_ONLY | CL_MEM_ALLOC_HOST_PTR, sizeof(int), NULL, &ret);
     if(ret != CL_SUCCESS) _error_out("clCreateBuffer", ret);
     clFlush(command_queue);
     clFinish(command_queue);
 
     // Initialize correct_nonce_mem with -1
-    correct_nonce = (int*)clEnqueueMapBuffer(command_queue, correct_nonce_mem, CL_TRUE, CL_MAP_WRITE, 0, sizeof(int), 0, NULL, NULL, &ret);
+    int *temp_ptr = (int*)clEnqueueMapBuffer(command_queue, ctx->correct_nonce_mem, CL_TRUE, CL_MAP_WRITE, 0, sizeof(int), 0, NULL, NULL, &ret);
     if(ret != CL_SUCCESS) _error_out("clEnqueueMapBuffer", ret);
     clFlush(command_queue);
     clFinish(command_queue);
-    *correct_nonce = -1;
-    ret = clEnqueueUnmapMemObject(command_queue, correct_nonce_mem, correct_nonce, 0, NULL, NULL);
+    *temp_ptr = -1;
+    ret = clEnqueueUnmapMemObject(command_queue, ctx->correct_nonce_mem, temp_ptr, 0, NULL, NULL);
     if(ret != CL_SUCCESS) _error_out("clEnqueueUnmapMemObject", ret);
     clFlush(command_queue);
     clFinish(command_queue);
 
-    clSetKernelArg(check_nonce_kernel, 0, sizeof(cl_mem), &nonce_int_mem);
-    clSetKernelArg(check_nonce_kernel, 1, sizeof(cl_mem), &lut_mem);
-    clSetKernelArg(check_nonce_kernel, 2, sizeof(cl_mem), &prefix_mem);
-    clSetKernelArg(check_nonce_kernel, 3, sizeof(cl_mem), &target_mem);
-    clSetKernelArg(check_nonce_kernel, 4, sizeof(cl_mem), &correct_nonce_mem);
-    clSetKernelArg(check_nonce_kernel, 5, sizeof(int), &iterate_size);
+    clSetKernelArg(ctx->kernel, 0, sizeof(cl_mem), &(ctx->nonce_int_mem));
+    clSetKernelArg(ctx->kernel, 1, sizeof(cl_mem), &(ctx->lut_mem));
+    clSetKernelArg(ctx->kernel, 2, sizeof(cl_mem), &(ctx->prefix_mem));
+    clSetKernelArg(ctx->kernel, 3, sizeof(cl_mem), &(ctx->target_mem));
+    clSetKernelArg(ctx->kernel, 4, sizeof(cl_mem), &(ctx->correct_nonce_mem));
+    clSetKernelArg(ctx->kernel, 5, sizeof(int), &(ctx->auto_iterate_size));
 }
 
-void feed_check_nonce_kernel(int *input){
+void feed_check_nonce_kernel(struct check_nonce_ctx *ctx, int *input){
     int ret;
-    nonce_int = (int*)clEnqueueMapBuffer(command_queue, nonce_int_mem, CL_TRUE, CL_MAP_WRITE, 0, check_nonce_n_workers*sizeof(int), 0, NULL, NULL, &ret);
+    int *temp_ptr = (int*)clEnqueueMapBuffer(command_queue, ctx->nonce_int_mem, CL_TRUE, CL_MAP_WRITE, 0, ctx->n_workers*sizeof(int), 0, NULL, NULL, &ret);
     if(ret != CL_SUCCESS) _error_out("clEnqueueMapBuffer", ret);
     clFlush(command_queue);
     clFinish(command_queue);
 
-    memcpy(nonce_int, input, check_nonce_n_workers*sizeof(int));
+    memcpy(temp_ptr, input, ctx->n_workers*sizeof(int));
 
-    ret = clEnqueueUnmapMemObject(command_queue, nonce_int_mem, nonce_int, 0, NULL, NULL);
+    ret = clEnqueueUnmapMemObject(command_queue, ctx->nonce_int_mem, temp_ptr, 0, NULL, NULL);
     if(ret != CL_SUCCESS) _error_out("clEnqueueUnmapMemObject", ret);
     clFlush(command_queue);
     clFinish(command_queue);
 }
 
-void launch_check_nonce_kernel(){
+void launch_check_nonce_kernel(struct check_nonce_ctx *ctx){
     cl_int ret;
-    ret = clEnqueueNDRangeKernel(command_queue, check_nonce_kernel, 1, NULL, &check_nonce_n_workers, NULL, 0, NULL, NULL);
+    ret = clEnqueueNDRangeKernel(command_queue, ctx->kernel, 1, NULL, &(ctx->n_workers), NULL, 0, NULL, NULL);
     if(ret != CL_SUCCESS) _error_out("clEnqueueNDRangeKernel", ret);
     clFlush(command_queue);
 }
 
-void dump_check_nonce_kernel(int *output){
+void dump_check_nonce_kernel(struct check_nonce_ctx *ctx, int *output){
     int ret;
-    correct_nonce = (int*)clEnqueueMapBuffer(command_queue, correct_nonce_mem, CL_TRUE, CL_MAP_READ, 0, sizeof(int), 0, NULL, NULL, &ret);
+    int *temp_ptr = (int*)clEnqueueMapBuffer(command_queue, ctx->correct_nonce_mem, CL_TRUE, CL_MAP_READ, 0, sizeof(int), 0, NULL, NULL, &ret);
     if(ret != CL_SUCCESS) _error_out("clEnqueueMapBuffer", ret);
     clFlush(command_queue);
     clFinish(command_queue);
 
-    memcpy(output, correct_nonce, sizeof(int));
+    memcpy(output, temp_ptr, sizeof(int));
 
-    ret = clEnqueueUnmapMemObject(command_queue, correct_nonce_mem, correct_nonce, 0, NULL, NULL);
+    ret = clEnqueueUnmapMemObject(command_queue, ctx->correct_nonce_mem, temp_ptr, 0, NULL, NULL);
     if(ret != CL_SUCCESS) _error_out("clEnqueueUnmapMemObject", ret);
     clFlush(command_queue);
     clFinish(command_queue);
 }
 
-void apply_check_nonce_kernel(int *input, int *output){
-    feed_check_nonce_kernel(input);
-    launch_check_nonce_kernel();
+void apply_check_nonce_kernel(struct check_nonce_ctx *ctx, int *input, int *output){
+    feed_check_nonce_kernel(ctx, input);
+    launch_check_nonce_kernel(ctx);
     await_OpenCL();
-    dump_check_nonce_kernel(output);
+    dump_check_nonce_kernel(ctx, output);
 }
 
-void deconstruct_check_nonce_kernel(){
-    clReleaseMemObject(nonce_int_mem);
-    clReleaseMemObject(lut_mem);
-    clReleaseMemObject(prefix_mem);
-    clReleaseMemObject(target_mem);
-    clReleaseMemObject(correct_nonce_mem);
-    clReleaseKernel(check_nonce_kernel);
+void deconstruct_check_nonce_kernel(struct check_nonce_ctx *ctx){
+    clReleaseMemObject(ctx->nonce_int_mem);
+    clReleaseMemObject(ctx->lut_mem);
+    clReleaseMemObject(ctx->prefix_mem);
+    clReleaseMemObject(ctx->target_mem);
+    clReleaseMemObject(ctx->correct_nonce_mem);
+    clReleaseKernel(ctx->kernel);
 }
