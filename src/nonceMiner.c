@@ -402,8 +402,8 @@ int main(int argc, char **argv){
                 strcpy(identifier, optarg);
                 break;
             case 't':
-                if(sscanf(optarg, "%d", &n_threads) != 1 || n_threads <= 0){
-                    fprintf(stderr, "Option -t requires a positive integer argument.\n");
+                if(sscanf(optarg, "%d", &n_threads) != 1 || n_threads < 0){
+                    fprintf(stderr, "Option -t requires a positive integer argument (or zero if using GPUs).\n");
                     return 1;
                 }
                 break;
@@ -421,6 +421,10 @@ int main(int argc, char **argv){
 
     if(strcmp(username, "") == 0){
         fprintf(stderr, "Missing username '-u'.\n");
+        return 1;
+    }
+    if(n_threads == 0 && !using_OpenCL){
+        fprintf(stderr, "Option -t requires a positive integer argument (or zero if using GPUs).\n");
         return 1;
     }
     
