@@ -6,13 +6,6 @@ cl_context context;
 cl_command_queue command_queue;
 cl_program program;
 
-// SHA-1 kernel context
-cl_kernel sha1_kernel;
-cl_mem sha1_in_mem, sha1_out_mem;
-inbuf *sha1_in;
-outbuf *sha1_out;
-size_t sha1_n_workers;
-
 // DUCO_S1 kernel context
 cl_kernel check_nonce_kernel;
 cl_mem nonce_int_mem, lut_mem, prefix_mem, target_mem, correct_nonce_mem;
@@ -270,68 +263,4 @@ void deconstruct_check_nonce_kernel(){
     clReleaseMemObject(target_mem);
     clReleaseMemObject(correct_nonce_mem);
     clReleaseKernel(check_nonce_kernel);
-}
-
-
-void build_sha1_kernel(size_t num_threads){
-    // Create the OpenCL kernel
-    cl_int ret;
-    sha1_kernel = clCreateKernel(program, "hash_main", &ret);
-    if(ret != CL_SUCCESS) _error_out("clCreateKernel", ret);
-
-    sha1_in_mem = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, num_threads*sizeof(inbuf), NULL, &ret);
-    if(ret != CL_SUCCESS) _error_out("clCreateBuffer", ret);
-    sha1_out_mem = clCreateBuffer(context, CL_MEM_WRITE_ONLY | CL_MEM_ALLOC_HOST_PTR, num_threads*sizeof(outbuf), NULL, &ret);
-    if(ret != CL_SUCCESS) _error_out("clCreateBuffer", ret);
-    clFlush(command_queue);
-    clFinish(command_queue);
-
-    ret = clSetKernelArg(sha1_kernel, 0, sizeof(cl_mem), &sha1_in_mem);
-    ret = clSetKernelArg(sha1_kernel, 1, sizeof(cl_mem), &sha1_out_mem);
-
-    sha1_n_workers = num_threads;
-}
-
-void feed_sha1_kernel(inbuf *input){
-    int ret;
-    sha1_in = (inbuf*)clEnqueueMapBuffer(command_queue, sha1_in_mem, CL_TRUE, CL_MAP_WRITE, 0, sha1_n_workers*sizeof(inbuf), 0, NULL, NULL, &ret);
-    if(ret != CL_SUCCESS) _error_out("clEnqueueMapBuffer", ret);
-    clFlush(command_queue);
-    clFinish(command_queue);
-
-    memcpy(sha1_in, input, sha1_n_workers*sizeof(inbuf));
-
-    ret = clEnqueueUnmapMemObject(command_queue, sha1_in_mem, sha1_in, 0, NULL, NULL);
-    if(ret != CL_SUCCESS) _error_out("clEnqueueUnmapMemObject", ret);
-    clFlush(command_queue);
-    clFinish(command_queue);
-}
-
-void launch_sha1_kernel(){
-    cl_int ret;
-    ret = clEnqueueNDRangeKernel(command_queue, sha1_kernel, 1, NULL, &sha1_n_workers, NULL, 0, NULL, NULL);
-    if(ret != CL_SUCCESS) _error_out("clEnqueueNDRangeKernel", ret);
-    clFlush(command_queue);
-}
-
-void dump_sha1_kernel(outbuf *output){
-    int ret;
-    sha1_out = (outbuf*)clEnqueueMapBuffer(command_queue, sha1_out_mem, CL_TRUE, CL_MAP_READ, 0, sha1_n_workers*sizeof(outbuf), 0, NULL, NULL, &ret);
-    if(ret != CL_SUCCESS) _error_out("clEnqueueMapBuffer", ret);
-    clFlush(command_queue);
-    clFinish(command_queue);
-
-    memcpy(output, sha1_out, sha1_n_workers*sizeof(outbuf));
-
-    ret = clEnqueueUnmapMemObject(command_queue, sha1_out_mem, sha1_out, 0, NULL, NULL);
-    if(ret != CL_SUCCESS) _error_out("clEnqueueUnmapMemObject", ret);
-    clFlush(command_queue);
-    clFinish(command_queue);
-}
-
-void apply_sha1_kernel(inbuf *input, outbuf *output){
-    feed_sha1_kernel(input);
-    launch_sha1_kernel();
-    await_OpenCL();
-    dump_sha1_kernel(output);
 }

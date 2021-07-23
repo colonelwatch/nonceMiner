@@ -40,11 +40,4 @@ void dump_check_nonce_kernel(int *output);
 void apply_check_nonce_kernel(int *input, int *output);
 void deconstruct_check_nonce_kernel();
 
-// SHA-1 kernel functions
-void build_sha1_kernel(size_t num_threads);
-void feed_sha1_kernel(inbuf *input);
-void launch_sha1_kernel();
-void dump_sha1_kernel(outbuf *output);
-void apply_sha1_kernel(inbuf *input, outbuf *output);
-
 #endif
