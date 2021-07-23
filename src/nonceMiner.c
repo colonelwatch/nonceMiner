@@ -106,6 +106,7 @@ struct _thread_resources{
 enum Intensity {LOW, MEDIUM, NET, EXTREME};
 
 MUTEX_T count_lock; // Protects access to shares counters
+struct check_nonce_ctx opencl_ctx;
 int server_is_online = 1;
 int using_xxhash = 0;
 int shared_accepted = 0, shared_rejected = 0;
@@ -243,7 +244,8 @@ void* mining_routine(void* arg){
                             (const unsigned char*) &buf[0],
                             40,
                             (const unsigned char*) &buf[41],
-                            diff
+                            diff, 
+                            &opencl_ctx
                         );
                     }
                     else{
@@ -457,6 +459,7 @@ int main(int argc, char **argv){
         };
         init_OpenCL();
         build_OpenCL_source(filenames, 3);
+        build_check_nonce_kernel(&opencl_ctx, 65536);
     }
     if(using_xxhash)
         printf("Running in xxhash mode. WARNING: Per-thread hashrates over 0.9 MH/s may be rejected.\n");

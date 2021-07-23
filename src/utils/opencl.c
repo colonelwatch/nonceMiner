@@ -189,7 +189,7 @@ void await_OpenCL(){
 }
 
 
-void build_check_nonce_kernel(struct check_nonce_ctx *ctx, size_t num_threads, const char *prefix, const char *target, int auto_iterate){
+void build_check_nonce_kernel(struct check_nonce_ctx *ctx, size_t num_threads){
     // Create the OpenCL kernel
     cl_int ret;
     ctx->kernel = clCreateKernel(program, "check_nonce", &ret);
@@ -197,40 +197,43 @@ void build_check_nonce_kernel(struct check_nonce_ctx *ctx, size_t num_threads, c
 
     // Set the kernel arguments
     ctx->n_workers = num_threads;
-    if(auto_iterate) ctx->auto_iterate_size = num_threads;
-    else ctx->auto_iterate_size = 0;
-    _generate_expected(&(ctx->expected_hash), target);
 
     ctx->nonce_int_mem = clCreateBuffer(context, CL_MEM_ALLOC_HOST_PTR, ctx->n_workers*sizeof(int), NULL, &ret);
     if(ret != CL_SUCCESS) _error_out("clCreateBuffer", ret);
     ctx->lut_mem = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(three_digit_table), (void*)three_digit_table, &ret);
     if(ret != CL_SUCCESS) _error_out("clCreateBuffer", ret);
-    ctx->prefix_mem = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, 40*sizeof(char), (void*)prefix, &ret);
+    ctx->prefix_mem = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, 40*sizeof(char), NULL, &ret);
     if(ret != CL_SUCCESS) _error_out("clCreateBuffer", ret);
-    ctx->target_mem = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(outbuf), (void*)&(ctx->expected_hash), &ret);
+    ctx->target_mem = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, sizeof(outbuf), NULL, &ret);
     if(ret != CL_SUCCESS) _error_out("clCreateBuffer", ret);
     ctx->correct_nonce_mem = clCreateBuffer(context, CL_MEM_WRITE_ONLY | CL_MEM_ALLOC_HOST_PTR, sizeof(int), NULL, &ret);
     if(ret != CL_SUCCESS) _error_out("clCreateBuffer", ret);
     clFlush(command_queue);
     clFinish(command_queue);
+}
 
-    // Initialize correct_nonce_mem with -1
-    int *temp_ptr = (int*)clEnqueueMapBuffer(command_queue, ctx->correct_nonce_mem, CL_TRUE, CL_MAP_WRITE, 0, sizeof(int), 0, NULL, NULL, &ret);
-    if(ret != CL_SUCCESS) _error_out("clEnqueueMapBuffer", ret);
-    clFlush(command_queue);
-    clFinish(command_queue);
-    *temp_ptr = -1;
-    ret = clEnqueueUnmapMemObject(command_queue, ctx->correct_nonce_mem, temp_ptr, 0, NULL, NULL);
-    if(ret != CL_SUCCESS) _error_out("clEnqueueUnmapMemObject", ret);
-    clFlush(command_queue);
-    clFinish(command_queue);
+// Needs to be called before the first use of the context
+void init_check_nonce_kernel(struct check_nonce_ctx *ctx, const char *prefix, const char *target){
+    // Generate some of the parameters to copy
+    int temp = -1;
+    _generate_expected(&(ctx->expected_hash), target);
+    int *nonce_arr = malloc(ctx->n_workers*sizeof(unsigned long));
+    for(int i = 0; i < ctx->n_workers; i++) nonce_arr[i] = i;
+
+    // Copy parameters into device memory
+    write_pinned_mem(ctx->nonce_int_mem, nonce_arr, ctx->n_workers*sizeof(int));
+    write_pinned_mem(ctx->prefix_mem, prefix, 40*sizeof(char));
+    write_pinned_mem(ctx->target_mem, &(ctx->expected_hash), sizeof(outbuf));
+    write_pinned_mem(ctx->correct_nonce_mem, &temp, sizeof(int));
 
     clSetKernelArg(ctx->kernel, 0, sizeof(cl_mem), &(ctx->nonce_int_mem));
     clSetKernelArg(ctx->kernel, 1, sizeof(cl_mem), &(ctx->lut_mem));
     clSetKernelArg(ctx->kernel, 2, sizeof(cl_mem), &(ctx->prefix_mem));
     clSetKernelArg(ctx->kernel, 3, sizeof(cl_mem), &(ctx->target_mem));
     clSetKernelArg(ctx->kernel, 4, sizeof(cl_mem), &(ctx->correct_nonce_mem));
-    clSetKernelArg(ctx->kernel, 5, sizeof(int), &(ctx->auto_iterate_size));
+    clSetKernelArg(ctx->kernel, 5, sizeof(int), &(ctx->n_workers));
+
+    free(nonce_arr);
 }
 
 void feed_check_nonce_kernel(struct check_nonce_ctx *ctx, int *input){
@@ -248,8 +251,7 @@ void dump_check_nonce_kernel(struct check_nonce_ctx *ctx, int *output){
     read_pinned_mem(output, ctx->correct_nonce_mem, sizeof(int));
 }
 
-void apply_check_nonce_kernel(struct check_nonce_ctx *ctx, int *input, int *output){
-    feed_check_nonce_kernel(ctx, input);
+void apply_check_nonce_kernel(struct check_nonce_ctx *ctx, int *output){
     launch_check_nonce_kernel(ctx);
     await_OpenCL();
     dump_check_nonce_kernel(ctx, output);

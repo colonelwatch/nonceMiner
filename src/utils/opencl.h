@@ -25,7 +25,6 @@ struct check_nonce_ctx{
     cl_mem nonce_int_mem, lut_mem, prefix_mem, target_mem, correct_nonce_mem;
     outbuf expected_hash;
     size_t n_workers;
-    int auto_iterate_size;
 };
 
 // internal private functions
@@ -42,11 +41,11 @@ void write_pinned_mem(cl_mem dst, const void *src, size_t size);
 void await_OpenCL();
 
 // check_nonce functions
-void build_check_nonce_kernel(struct check_nonce_ctx *ctx, size_t num_threads, const char *prefix, const char *target, int auto_iterate);
-void feed_check_nonce_kernel(struct check_nonce_ctx *ctx, int *input);
+void build_check_nonce_kernel(struct check_nonce_ctx *ctx, size_t num_threads);
+void init_check_nonce_kernel(struct check_nonce_ctx *ctx, const char *prefix, const char *target);
 void launch_check_nonce_kernel(struct check_nonce_ctx *ctx);
 void dump_check_nonce_kernel(struct check_nonce_ctx *ctx, int *output);
-void apply_check_nonce_kernel(struct check_nonce_ctx *ctx, int *input, int *output);
+void apply_check_nonce_kernel(struct check_nonce_ctx *ctx, int *output);
 void deconstruct_check_nonce_kernel(struct check_nonce_ctx *ctx);
 
 #endif

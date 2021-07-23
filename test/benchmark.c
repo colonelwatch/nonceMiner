@@ -68,12 +68,14 @@ int main(){
         "OpenCL/sha1.cl",
         "OpenCL/duco_s1.cl"
     };
+    struct check_nonce_ctx ctx;
     init_OpenCL();
     build_OpenCL_source(filenames, 3);
+    build_check_nonce_kernel(&ctx, 65536);
 
     for(int i = 0; i < AVERAGE_COUNT; i++){
         GET_TIME(&t0);
-        nonce = mine_DUCO_S1_OpenCL(DUCO_S1_prefix, 40, DUCO_S1_target, DUCO_S1_diff);
+        nonce = mine_DUCO_S1_OpenCL(DUCO_S1_prefix, 40, DUCO_S1_target, DUCO_S1_diff, &ctx);
         GET_TIME(&t1);
         diff_ms_arr[i] = DIFF_TIME_MS(&t1, &t0);
     }
@@ -85,6 +87,8 @@ int main(){
     if(nonce == DUCO_S1_result) printf("Passed, ");
     else printf("Failed, ");
     printf("with speed %.2f +/- %.4f MH/s\n", megahash, megahash_error);
+
+    deconstruct_check_nonce_kernel(&ctx);
 
 
     printf("Benchmarking mine_DUCO_S1... ");

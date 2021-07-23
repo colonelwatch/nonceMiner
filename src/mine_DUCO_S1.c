@@ -40,33 +40,26 @@ long mine_DUCO_S1_OpenCL(
     const unsigned char *input_prefix,
     int prefix_length,
     const unsigned char target_hexdigest[DUCO_S1_SIZE*2],
-    int difficulty)
+    int difficulty,
+    struct check_nonce_ctx *ctx)
 {
     int maximum = 100*difficulty+1;
     int zeroth_val = 0; // Keeps track of the nonces already tried
-    int *nonce_arr = malloc(65536*sizeof(unsigned long));
     int correct_nonce = -1;
-    for(int i = 0; i < 65536; i++) nonce_arr[i] = i;
-
-    struct check_nonce_ctx ctx;
-    build_check_nonce_kernel(&ctx, 65536, (const char*)input_prefix, (const char*)target_hexdigest, 1);
-
+    
     // We stagger GPU and CPU work here to avoid serial execution
-    apply_check_nonce_kernel(&ctx, nonce_arr, &correct_nonce);
+    init_check_nonce_kernel(ctx, (const char*)input_prefix, (const char*)target_hexdigest);
+    apply_check_nonce_kernel(ctx, &correct_nonce);
     while(zeroth_val < maximum-65536){
-        launch_check_nonce_kernel(&ctx);
+        launch_check_nonce_kernel(ctx);
         if(correct_nonce != -1){
             await_OpenCL();
-            deconstruct_check_nonce_kernel(&ctx);
-            free(nonce_arr);
             return correct_nonce;
         }
         await_OpenCL();
         zeroth_val += 65536;
-        dump_check_nonce_kernel(&ctx, &correct_nonce);
+        dump_check_nonce_kernel(ctx, &correct_nonce);
     }
 
-    deconstruct_check_nonce_kernel(&ctx);
-    free(nonce_arr);
     return -1;
 }
