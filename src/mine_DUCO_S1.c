@@ -44,21 +44,24 @@ long mine_DUCO_S1_OpenCL(
     struct check_nonce_ctx *ctx)
 {
     int maximum = 100*difficulty+1;
-    int zeroth_val = 0; // Keeps track of the nonces already tried
-    int correct_nonce = -1;
-    
-    // We stagger GPU and CPU work here to avoid serial execution
+    int next_val = 0; // Keeps track of next nonce to try
+    int correct_nonce;
     init_check_nonce_kernel(ctx, (const char*)input_prefix, (const char*)target_hexdigest);
-    apply_check_nonce_kernel(ctx, &correct_nonce);
-    while(zeroth_val < maximum-65536){
+
+    // We stagger GPU and CPU work here to avoid serial execution, and the GPU starts first
+    launch_check_nonce_kernel(ctx);
+    await_OpenCL();
+    dump_check_nonce_kernel(ctx, &correct_nonce);
+    next_val += 65536;
+    while(next_val < maximum){
         launch_check_nonce_kernel(ctx);
         if(correct_nonce != -1){
             await_OpenCL();
             return correct_nonce;
         }
         await_OpenCL();
-        zeroth_val += 65536;
         dump_check_nonce_kernel(ctx, &correct_nonce);
+        next_val += 65536;
     }
 
     return -1;

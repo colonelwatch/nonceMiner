@@ -45,7 +45,6 @@ void build_check_nonce_kernel(struct check_nonce_ctx *ctx, size_t num_threads);
 void init_check_nonce_kernel(struct check_nonce_ctx *ctx, const char *prefix, const char *target);
 void launch_check_nonce_kernel(struct check_nonce_ctx *ctx);
 void dump_check_nonce_kernel(struct check_nonce_ctx *ctx, int *output);
-void apply_check_nonce_kernel(struct check_nonce_ctx *ctx, int *output);
 void deconstruct_check_nonce_kernel(struct check_nonce_ctx *ctx);
 
 #endif

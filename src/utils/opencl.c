@@ -236,10 +236,6 @@ void init_check_nonce_kernel(struct check_nonce_ctx *ctx, const char *prefix, co
     free(nonce_arr);
 }
 
-void feed_check_nonce_kernel(struct check_nonce_ctx *ctx, int *input){
-    write_pinned_mem(ctx->nonce_int_mem, input, ctx->n_workers*sizeof(int));
-}
-
 void launch_check_nonce_kernel(struct check_nonce_ctx *ctx){
     cl_int ret;
     ret = clEnqueueNDRangeKernel(command_queue, ctx->kernel, 1, NULL, &(ctx->n_workers), NULL, 0, NULL, NULL);
@@ -249,12 +245,6 @@ void launch_check_nonce_kernel(struct check_nonce_ctx *ctx){
 
 void dump_check_nonce_kernel(struct check_nonce_ctx *ctx, int *output){
     read_pinned_mem(output, ctx->correct_nonce_mem, sizeof(int));
-}
-
-void apply_check_nonce_kernel(struct check_nonce_ctx *ctx, int *output){
-    launch_check_nonce_kernel(ctx);
-    await_OpenCL();
-    dump_check_nonce_kernel(ctx, output);
 }
 
 void deconstruct_check_nonce_kernel(struct check_nonce_ctx *ctx){
