@@ -154,6 +154,36 @@ void build_OpenCL_source(char **source_files, int n_files){
     free(temp_str);
 }
 
+void read_pinned_mem(void *dst, cl_mem src, size_t size){
+    int ret;
+    char *temp_ptr = (char*)clEnqueueMapBuffer(command_queue, src, CL_TRUE, CL_MAP_READ, 0, size, 0, NULL, NULL, &ret);
+    if(ret != CL_SUCCESS) _error_out("clEnqueueMapBuffer", ret);
+    clFlush(command_queue);
+    clFinish(command_queue);
+
+    memcpy(dst, temp_ptr, size);
+
+    ret = clEnqueueUnmapMemObject(command_queue, src, temp_ptr, 0, NULL, NULL);
+    if(ret != CL_SUCCESS) _error_out("clEnqueueUnmapMemObject", ret);
+    clFlush(command_queue);
+    clFinish(command_queue);
+}
+
+void write_pinned_mem(cl_mem dst, const void *src, size_t size){
+    int ret;
+    char *temp_ptr = (char*)clEnqueueMapBuffer(command_queue, dst, CL_TRUE, CL_MAP_WRITE, 0, size, 0, NULL, NULL, &ret);
+    if(ret != CL_SUCCESS) _error_out("clEnqueueMapBuffer", ret);
+    clFlush(command_queue);
+    clFinish(command_queue);
+
+    memcpy(temp_ptr, src, size);
+
+    ret = clEnqueueUnmapMemObject(command_queue, dst, temp_ptr, 0, NULL, NULL);
+    if(ret != CL_SUCCESS) _error_out("clEnqueueUnmapMemObject", ret);
+    clFlush(command_queue);
+    clFinish(command_queue);
+}
+
 void await_OpenCL(){
     clFinish(command_queue);
 }
@@ -204,18 +234,7 @@ void build_check_nonce_kernel(struct check_nonce_ctx *ctx, size_t num_threads, c
 }
 
 void feed_check_nonce_kernel(struct check_nonce_ctx *ctx, int *input){
-    int ret;
-    int *temp_ptr = (int*)clEnqueueMapBuffer(command_queue, ctx->nonce_int_mem, CL_TRUE, CL_MAP_WRITE, 0, ctx->n_workers*sizeof(int), 0, NULL, NULL, &ret);
-    if(ret != CL_SUCCESS) _error_out("clEnqueueMapBuffer", ret);
-    clFlush(command_queue);
-    clFinish(command_queue);
-
-    memcpy(temp_ptr, input, ctx->n_workers*sizeof(int));
-
-    ret = clEnqueueUnmapMemObject(command_queue, ctx->nonce_int_mem, temp_ptr, 0, NULL, NULL);
-    if(ret != CL_SUCCESS) _error_out("clEnqueueUnmapMemObject", ret);
-    clFlush(command_queue);
-    clFinish(command_queue);
+    write_pinned_mem(ctx->nonce_int_mem, input, ctx->n_workers*sizeof(int));
 }
 
 void launch_check_nonce_kernel(struct check_nonce_ctx *ctx){
@@ -226,18 +245,7 @@ void launch_check_nonce_kernel(struct check_nonce_ctx *ctx){
 }
 
 void dump_check_nonce_kernel(struct check_nonce_ctx *ctx, int *output){
-    int ret;
-    int *temp_ptr = (int*)clEnqueueMapBuffer(command_queue, ctx->correct_nonce_mem, CL_TRUE, CL_MAP_READ, 0, sizeof(int), 0, NULL, NULL, &ret);
-    if(ret != CL_SUCCESS) _error_out("clEnqueueMapBuffer", ret);
-    clFlush(command_queue);
-    clFinish(command_queue);
-
-    memcpy(output, temp_ptr, sizeof(int));
-
-    ret = clEnqueueUnmapMemObject(command_queue, ctx->correct_nonce_mem, temp_ptr, 0, NULL, NULL);
-    if(ret != CL_SUCCESS) _error_out("clEnqueueUnmapMemObject", ret);
-    clFlush(command_queue);
-    clFinish(command_queue);
+    read_pinned_mem(output, ctx->correct_nonce_mem, sizeof(int));
 }
 
 void apply_check_nonce_kernel(struct check_nonce_ctx *ctx, int *input, int *output){

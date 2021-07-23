@@ -37,6 +37,8 @@ void _replace_string(char *buffer, const char *search, const char *replace);
 // general OpenCL functions
 void init_OpenCL();
 void build_OpenCL_source(char **source_files, int n_files);
+void read_pinned_mem(void *dst, cl_mem src, size_t size);
+void write_pinned_mem(cl_mem dst, const void *src, size_t size);
 void await_OpenCL();
 
 // check_nonce functions
