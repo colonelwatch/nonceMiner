@@ -456,14 +456,23 @@ int main(int argc, char **argv){
     printf("and %d thread(s).\n", n_threads);
     if(using_OpenCL){
         printf("OpenCL flag detected, configuring one additional GPU thread...\n");
+
+        int n_gpus = count_OpenCL_devices(CL_DEVICE_TYPE_GPU);
+        cl_device_id *gpu_ids = (cl_device_id*)malloc(n_gpus*sizeof(cl_device_id));
+        check_nonce_ctx *gpu_ctxs = (check_nonce_ctx*)malloc(n_gpus*sizeof(check_nonce_ctx));
+        get_OpenCL_devices(gpu_ids, n_gpus, CL_DEVICE_TYPE_GPU);
+        init_OpenCL_devices(gpu_ctxs, gpu_ids, n_gpus);
+
         char *filenames[3] = {
             "OpenCL/buffer_structs_template.cl",
             "OpenCL/sha1.cl",
             "OpenCL/duco_s1.cl"
         };
-        init_OpenCL();
-        build_OpenCL_source(filenames, 3);
-        build_check_nonce_kernel(&opencl_ctx, 65536);
+        for(int i = 0; i < n_gpus; i++){
+            build_OpenCL_source(&gpu_ctxs[i], gpu_ids[i], filenames, 3);
+            build_check_nonce_kernel(&gpu_ctxs[i], 65536);
+        }
+        opencl_ctx = gpu_ctxs[0];
     }
     if(using_xxhash)
         printf("Running in xxhash mode. WARNING: Per-thread hashrates over 0.9 MH/s may be rejected.\n");

@@ -50,16 +50,16 @@ long mine_DUCO_S1_OpenCL(
 
     // We stagger GPU and CPU work here to avoid serial execution, and the GPU starts first
     launch_check_nonce_kernel(ctx);
-    await_OpenCL();
+    await_OpenCL(ctx);
     dump_check_nonce_kernel(ctx, &correct_nonce);
     next_val += 65536;
     while(next_val < maximum){
         launch_check_nonce_kernel(ctx);
         if(correct_nonce != -1){
-            await_OpenCL();
+            await_OpenCL(ctx);
             return correct_nonce;
         }
-        await_OpenCL();
+        await_OpenCL(ctx);
         dump_check_nonce_kernel(ctx, &correct_nonce);
         next_val += 65536;
     }

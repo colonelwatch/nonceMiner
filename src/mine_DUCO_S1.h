@@ -50,7 +50,7 @@ long mine_DUCO_S1(
  *  whichever is the correct length. target_hexdigest should point to the beginning of the
  *  target hex digest.
  * 
- *  Builds and executes an OpenCL kernel on the first availible GPU. NOT THREAD SAFE.
+ *  Builds and executes an OpenCL kernel on the GPU specified by the ctx.
  * */
 long mine_DUCO_S1_OpenCL(
     const unsigned char *input_prefix,
