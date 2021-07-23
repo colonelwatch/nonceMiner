@@ -61,34 +61,48 @@ int main(){
     double megahash_arr[AVERAGE_COUNT], megahash, megahash_error;
 
     
-    printf("Benchmarking mine_DUCO_S1_OpenCL... ");
+    printf("Benchmarking mine_DUCO_S1_OpenCL... \n");
 
     char *filenames[3] = {
         "OpenCL/buffer_structs_template.cl",
         "OpenCL/sha1.cl",
         "OpenCL/duco_s1.cl"
     };
-    check_nonce_ctx ctx;
-    init_OpenCL();
-    build_OpenCL_source(filenames, 3);
-    build_check_nonce_kernel(&ctx, 65536);
+    char gpu_name_buffer[128];
+    int n_gpus = count_OpenCL_devices(CL_DEVICE_TYPE_GPU);
+    cl_device_id *gpu_ids = (cl_device_id*)malloc(n_gpus*sizeof(cl_device_id));
+    check_nonce_ctx *gpu_ctxs = (check_nonce_ctx*)malloc(n_gpus*sizeof(check_nonce_ctx));
+    get_OpenCL_devices(gpu_ids, n_gpus, CL_DEVICE_TYPE_GPU);
+    init_OpenCL_devices(gpu_ctxs, gpu_ids, n_gpus);
 
-    for(int i = 0; i < AVERAGE_COUNT; i++){
-        GET_TIME(&t0);
-        nonce = mine_DUCO_S1_OpenCL(DUCO_S1_prefix, 40, DUCO_S1_target, DUCO_S1_diff, &ctx);
-        GET_TIME(&t1);
-        diff_ms_arr[i] = DIFF_TIME_MS(&t1, &t0);
+    for(int i = 0; i < n_gpus; i++){
+        clGetDeviceInfo(gpu_ids[i], CL_DEVICE_NAME, 128, gpu_name_buffer, NULL);
+        printf("Benchmarking GPU %d (%s)... ", i, gpu_name_buffer);
+
+        build_OpenCL_source(&gpu_ctxs[i], gpu_ids[i], filenames, 3);
+        build_check_nonce_kernel(&gpu_ctxs[i], 65536);
+
+        for(int j = 0; j < AVERAGE_COUNT; j++){
+            GET_TIME(&t0);
+            nonce = mine_DUCO_S1_OpenCL(DUCO_S1_prefix, 40, DUCO_S1_target, DUCO_S1_diff, &gpu_ctxs[i]);
+            GET_TIME(&t1);
+            diff_ms_arr[j] = DIFF_TIME_MS(&t1, &t0);
+        }
+
+        for(int i = 0; i < AVERAGE_COUNT; i++)
+            megahash_arr[i] = (double)nonce*1000/diff_ms_arr[i]/1000000;
+        megahash = average(megahash_arr, AVERAGE_COUNT);
+        megahash_error = std_dev(megahash_arr, AVERAGE_COUNT);
+
+        if(nonce == DUCO_S1_result) printf("Passed, ");
+        else printf("Failed, ");
+        printf("with speed %.2f +/- %.4f MH/s\n", megahash, megahash_error);
+        
+        deconstruct_check_nonce_kernel(&gpu_ctxs[i]);
     }
-    for(int i = 0; i < AVERAGE_COUNT; i++)
-        megahash_arr[i] = (double)nonce*1000/diff_ms_arr[i]/1000000;
-    megahash = average(megahash_arr, AVERAGE_COUNT);
-    megahash_error = std_dev(megahash_arr, AVERAGE_COUNT);
 
-    if(nonce == DUCO_S1_result) printf("Passed, ");
-    else printf("Failed, ");
-    printf("with speed %.2f +/- %.4f MH/s\n", megahash, megahash_error);
-
-    deconstruct_check_nonce_kernel(&ctx);
+    free(gpu_ids);
+    free(gpu_ctxs);
 
 
     printf("Benchmarking mine_DUCO_S1... ");

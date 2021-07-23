@@ -128,7 +128,7 @@ void init_OpenCL_devices(check_nonce_ctx *devices_ctx, cl_device_id *devices, in
     int ret;
     for(int i = 0; i < n_devices; i++){
         // Create an OpenCL context
-        devices_ctx[i].context = clCreateContext(NULL, n_devices, devices, NULL, NULL, &ret);
+        devices_ctx[i].context = clCreateContext(NULL, 1, &devices[i], NULL, NULL, &ret);
         if(ret != CL_SUCCESS) _error_out("clCreateContext", ret);
 
         // Create a command queue for each device
@@ -259,7 +259,7 @@ void init_check_nonce_kernel(check_nonce_ctx *ctx, const char *prefix, const cha
     // Generate some of the parameters to copy
     int temp = -1;
     _generate_expected(&(ctx->expected_hash), target);
-    int *nonce_arr = malloc(ctx->n_workers*sizeof(unsigned long));
+    int *nonce_arr = malloc(ctx->n_workers*sizeof(int));
     for(int i = 0; i < ctx->n_workers; i++) nonce_arr[i] = i;
 
     // Copy parameters into device memory
