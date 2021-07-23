@@ -189,7 +189,7 @@ void await_OpenCL(){
 }
 
 
-void build_check_nonce_kernel(struct check_nonce_ctx *ctx, size_t num_threads){
+void build_check_nonce_kernel(check_nonce_ctx *ctx, size_t num_threads){
     // Create the OpenCL kernel
     cl_int ret;
     ctx->kernel = clCreateKernel(program, "check_nonce", &ret);
@@ -213,7 +213,7 @@ void build_check_nonce_kernel(struct check_nonce_ctx *ctx, size_t num_threads){
 }
 
 // Needs to be called before the first use of the context
-void init_check_nonce_kernel(struct check_nonce_ctx *ctx, const char *prefix, const char *target){
+void init_check_nonce_kernel(check_nonce_ctx *ctx, const char *prefix, const char *target){
     // Generate some of the parameters to copy
     int temp = -1;
     _generate_expected(&(ctx->expected_hash), target);
@@ -236,18 +236,18 @@ void init_check_nonce_kernel(struct check_nonce_ctx *ctx, const char *prefix, co
     free(nonce_arr);
 }
 
-void launch_check_nonce_kernel(struct check_nonce_ctx *ctx){
+void launch_check_nonce_kernel(check_nonce_ctx *ctx){
     cl_int ret;
     ret = clEnqueueNDRangeKernel(command_queue, ctx->kernel, 1, NULL, &(ctx->n_workers), NULL, 0, NULL, NULL);
     if(ret != CL_SUCCESS) _error_out("clEnqueueNDRangeKernel", ret);
     clFlush(command_queue);
 }
 
-void dump_check_nonce_kernel(struct check_nonce_ctx *ctx, int *output){
+void dump_check_nonce_kernel(check_nonce_ctx *ctx, int *output){
     read_pinned_mem(output, ctx->correct_nonce_mem, sizeof(int));
 }
 
-void deconstruct_check_nonce_kernel(struct check_nonce_ctx *ctx){
+void deconstruct_check_nonce_kernel(check_nonce_ctx *ctx){
     clReleaseMemObject(ctx->nonce_int_mem);
     clReleaseMemObject(ctx->lut_mem);
     clReleaseMemObject(ctx->prefix_mem);

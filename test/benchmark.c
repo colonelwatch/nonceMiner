@@ -68,7 +68,7 @@ int main(){
         "OpenCL/sha1.cl",
         "OpenCL/duco_s1.cl"
     };
-    struct check_nonce_ctx ctx;
+    check_nonce_ctx ctx;
     init_OpenCL();
     build_OpenCL_source(filenames, 3);
     build_check_nonce_kernel(&ctx, 65536);

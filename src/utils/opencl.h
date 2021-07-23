@@ -20,12 +20,12 @@ typedef struct {
 } outbuf;
 
 // DUCO_S1 kernel context
-struct check_nonce_ctx{
+typedef struct{
     cl_kernel kernel;
     cl_mem nonce_int_mem, lut_mem, prefix_mem, target_mem, correct_nonce_mem;
     outbuf expected_hash;
     size_t n_workers;
-};
+} check_nonce_ctx;
 
 // internal private functions
 unsigned char _hex_to_int(char high_hex, char low_hex);
@@ -41,10 +41,10 @@ void write_pinned_mem(cl_mem dst, const void *src, size_t size);
 void await_OpenCL();
 
 // check_nonce functions
-void build_check_nonce_kernel(struct check_nonce_ctx *ctx, size_t num_threads);
-void init_check_nonce_kernel(struct check_nonce_ctx *ctx, const char *prefix, const char *target);
-void launch_check_nonce_kernel(struct check_nonce_ctx *ctx);
-void dump_check_nonce_kernel(struct check_nonce_ctx *ctx, int *output);
-void deconstruct_check_nonce_kernel(struct check_nonce_ctx *ctx);
+void build_check_nonce_kernel(check_nonce_ctx *ctx, size_t num_threads);
+void init_check_nonce_kernel(check_nonce_ctx *ctx, const char *prefix, const char *target);
+void launch_check_nonce_kernel(check_nonce_ctx *ctx);
+void dump_check_nonce_kernel(check_nonce_ctx *ctx, int *output);
+void deconstruct_check_nonce_kernel(check_nonce_ctx *ctx);
 
 #endif

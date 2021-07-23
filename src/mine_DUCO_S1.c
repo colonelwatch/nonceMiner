@@ -41,7 +41,7 @@ long mine_DUCO_S1_OpenCL(
     int prefix_length,
     const unsigned char target_hexdigest[DUCO_S1_SIZE*2],
     int difficulty,
-    struct check_nonce_ctx *ctx)
+    check_nonce_ctx *ctx)
 {
     int maximum = 100*difficulty+1;
     int next_val = 0; // Keeps track of next nonce to try

@@ -106,7 +106,7 @@ struct _thread_resources{
 enum Intensity {LOW, MEDIUM, NET, EXTREME};
 
 MUTEX_T count_lock; // Protects access to shares counters
-struct check_nonce_ctx opencl_ctx;
+check_nonce_ctx opencl_ctx;
 int server_is_online = 1;
 int using_xxhash = 0;
 int shared_accepted = 0, shared_rejected = 0;
