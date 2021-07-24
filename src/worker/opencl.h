@@ -6,8 +6,6 @@
 #include <string.h>
 #include <CL/cl.h>
 
-#include "table.h"
-
 #define MAX_SOURCE_SIZE 0x100000
 
 // Input/output formats specified by sha1.cl
@@ -25,7 +23,7 @@ typedef struct{
     cl_command_queue command_queue;
     cl_program program;
     cl_kernel kernel;
-    cl_mem nonce_int_mem, lut_mem, prefix_mem, target_mem, correct_nonce_mem;
+    cl_mem nonce_int_mem, prefix_mem, target_mem, correct_nonce_mem;
     outbuf expected_hash;
     size_t auto_iterate_size;
 } worker_ctx;

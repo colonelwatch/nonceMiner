@@ -187,8 +187,9 @@ void build_OpenCL_worker_source(worker_ctx *ctx, cl_device_id device_id, char **
         temp_len = fread(temp_str, 1, MAX_SOURCE_SIZE, fp);
         fclose(fp);
 
-        temp_str[temp_len] = '\0';
-        source_len += temp_len;
+        temp_str[temp_len] = '\n'; // Add a newline in case it is missing
+        temp_str[temp_len+1] = '\0';
+        source_len += temp_len+1;
         strcat(source_str, temp_str);
     }
 
@@ -242,8 +243,6 @@ void build_OpenCL_worker_kernel(worker_ctx *ctx, size_t auto_iterate_size){
     // Build the kernel buffers
     ctx->nonce_int_mem = clCreateBuffer(ctx->context, CL_MEM_ALLOC_HOST_PTR, ctx->auto_iterate_size*sizeof(cl_int), NULL, &ret);
     if(ret != CL_SUCCESS) _error_out("clCreateBuffer", ret);
-    ctx->lut_mem = clCreateBuffer(ctx->context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(three_digit_table), (void*)three_digit_table, &ret);
-    if(ret != CL_SUCCESS) _error_out("clCreateBuffer", ret);
     ctx->prefix_mem = clCreateBuffer(ctx->context, CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, 40*sizeof(char), NULL, &ret);
     if(ret != CL_SUCCESS) _error_out("clCreateBuffer", ret);
     ctx->target_mem = clCreateBuffer(ctx->context, CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, sizeof(outbuf), NULL, &ret);
@@ -270,11 +269,10 @@ void init_OpenCL_worker_kernel(worker_ctx *ctx, const char *prefix, const char *
 
     // Set the kernel arguments
     clSetKernelArg(ctx->kernel, 0, sizeof(cl_mem), &(ctx->nonce_int_mem));
-    clSetKernelArg(ctx->kernel, 1, sizeof(cl_mem), &(ctx->lut_mem));
-    clSetKernelArg(ctx->kernel, 2, sizeof(cl_mem), &(ctx->prefix_mem));
-    clSetKernelArg(ctx->kernel, 3, sizeof(cl_mem), &(ctx->target_mem));
-    clSetKernelArg(ctx->kernel, 4, sizeof(cl_mem), &(ctx->correct_nonce_mem));
-    clSetKernelArg(ctx->kernel, 5, sizeof(int), &(ctx->auto_iterate_size));
+    clSetKernelArg(ctx->kernel, 1, sizeof(cl_mem), &(ctx->prefix_mem));
+    clSetKernelArg(ctx->kernel, 2, sizeof(cl_mem), &(ctx->target_mem));
+    clSetKernelArg(ctx->kernel, 3, sizeof(cl_mem), &(ctx->correct_nonce_mem));
+    clSetKernelArg(ctx->kernel, 4, sizeof(int), &(ctx->auto_iterate_size));
 
     free(nonce_arr);
 }
@@ -292,7 +290,6 @@ void dump_OpenCL_worker_kernel(worker_ctx *ctx, int *output){
 
 void deconstruct_OpenCL_worker_kernel(worker_ctx *ctx){
     clReleaseMemObject(ctx->nonce_int_mem);
-    clReleaseMemObject(ctx->lut_mem);
     clReleaseMemObject(ctx->prefix_mem);
     clReleaseMemObject(ctx->target_mem);
     clReleaseMemObject(ctx->correct_nonce_mem);

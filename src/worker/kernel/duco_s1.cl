@@ -19,24 +19,24 @@ int count_digits(int num){
                 else return 10;
 }
 
-void lookup_3_digits(char *arr, int num, __constant const char *table){
-    for(int i = 0; i < 3; i++) arr[i] = table[i+3*num];
+void lookup_3_digits(char *arr, int num){
+    for(int i = 0; i < 3; i++) arr[i] = three_digit_table[i+3*num]; // three_digit_table defined in lookup_tables.cl
 }
 
-int fast_print_int(char *buf, int num, __constant const char *lut){
+int fast_print_int(char *buf, int num){
     char temp_buf[12];
     char *temp_buf_ptr = temp_buf+12;
     int n_digits = 0;
     
     if(num == 0){ // Edge case, never enters for loop if num == 0
         temp_buf_ptr -= 3;
-        lookup_3_digits(temp_buf_ptr, 0, lut);
+        lookup_3_digits(temp_buf_ptr, 0);
         n_digits = 1;
     }
     else{
         for(int working_num = num; working_num != 0; working_num /= 1000){
             temp_buf_ptr -= 3;
-            lookup_3_digits(temp_buf_ptr, working_num % 1000, lut);
+            lookup_3_digits(temp_buf_ptr, working_num % 1000);
         }
         n_digits = count_digits(num);
     }
@@ -55,7 +55,6 @@ int compare(outbuf *hash, __constant const outbuf *target)
 
 __kernel void check_nonce(
     __global int *nonce_int, 
-    __constant const char *lut, 
     __constant const char *prefix, 
     __constant const outbuf *target, 
     __global int *correct_nonce, 
@@ -69,7 +68,7 @@ __kernel void check_nonce(
 
     for(int i = 0; i < 40; i++) buffer_ptr[i] = prefix[i];
     for(int i = 40; i < 52; i++) buffer_ptr[i] = 0; // Pads buffer with zeroes (sha1 kernel expects this)
-    sha1_input.length = 40+fast_print_int(buffer_ptr+40, nonce_int[idx], lut); // But before printing (this way is faster)
+    sha1_input.length = 40+fast_print_int(buffer_ptr+40, nonce_int[idx]); // But before printing (this way is faster)
 
     hash_private(sha1_input.buffer, sha1_input.length, sha1_output.buffer);
 

@@ -22,7 +22,7 @@
         ((t1_ptr)->tv_sec-(t0_ptr)->tv_sec)*1000+((t1_ptr)->tv_nsec-(t0_ptr)->tv_nsec)/1000000
 #endif
 
-#include "../src/utils/opencl.h"
+#include "../src/worker/opencl.h"
 #include "../src/mine_DUCO_S1.h"
 #include "../src/mine_xxhash.h"
 
@@ -63,8 +63,9 @@ int main(){
     
     printf("Benchmarking mine_DUCO_S1_OpenCL... \n");
 
-    char *filenames[3] = {
+    char *filenames[4] = {
         "OpenCL/buffer_structs_template.cl",
+        "OpenCL/lookup_tables.cl",
         "OpenCL/sha1.cl",
         "OpenCL/duco_s1.cl"
     };
@@ -79,7 +80,7 @@ int main(){
         clGetDeviceInfo(gpu_ids[i], CL_DEVICE_NAME, 128, gpu_name_buffer, NULL);
         printf("Benchmarking GPU %d (%s)... ", i, gpu_name_buffer);
 
-        build_OpenCL_worker_source(&gpu_ctxs[i], gpu_ids[i], filenames, 3);
+        build_OpenCL_worker_source(&gpu_ctxs[i], gpu_ids[i], filenames, 4);
         build_OpenCL_worker_kernel(&gpu_ctxs[i], 524288);
 
         for(int j = 0; j < AVERAGE_COUNT; j++){

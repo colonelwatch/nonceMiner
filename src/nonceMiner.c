@@ -473,13 +473,14 @@ int main(int argc, char **argv){
 
         puts("Configuring OpenCL on GPUs and compiling hashing kernels..."); // Inline with the above?
 
-        char *filenames[3] = {
+        char *filenames[4] = {
             "OpenCL/buffer_structs_template.cl",
+            "OpenCL/lookup_tables.cl",
             "OpenCL/sha1.cl",
             "OpenCL/duco_s1.cl"
         };
         for(int i = 0; i < n_gpus; i++){
-            build_OpenCL_worker_source(&gpu_ctxs[i], gpu_ids[i], filenames, 3);
+            build_OpenCL_worker_source(&gpu_ctxs[i], gpu_ids[i], filenames, 4);
             build_OpenCL_worker_kernel(&gpu_ctxs[i], 524288);
         }
 
