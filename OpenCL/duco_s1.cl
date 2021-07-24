@@ -68,8 +68,8 @@ __kernel void check_nonce(
     char *buffer_ptr = (char*)sha1_input.buffer;
 
     for(int i = 0; i < 40; i++) buffer_ptr[i] = prefix[i];
-    sha1_input.length = 40+fast_print_int(buffer_ptr+40, nonce_int[idx], lut);
-    for(int i = sha1_input.length; i < 52; i++) buffer_ptr[i] = 0;
+    for(int i = 40; i < 52; i++) buffer_ptr[i] = 0; // Pads buffer with zeroes (sha1 kernel expects this)
+    sha1_input.length = 40+fast_print_int(buffer_ptr+40, nonce_int[idx], lut); // But before printing (this way is faster)
 
     hash_private(sha1_input.buffer, sha1_input.length, sha1_output.buffer);
 
