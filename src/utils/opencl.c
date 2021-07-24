@@ -240,7 +240,7 @@ void build_OpenCL_worker_kernel(worker_ctx *ctx, size_t auto_iterate_size){
     ctx->auto_iterate_size = auto_iterate_size;
 
     // Build the kernel buffers
-    ctx->nonce_int_mem = clCreateBuffer(ctx->context, CL_MEM_ALLOC_HOST_PTR, ctx->auto_iterate_size*sizeof(int), NULL, &ret);
+    ctx->nonce_int_mem = clCreateBuffer(ctx->context, CL_MEM_ALLOC_HOST_PTR, ctx->auto_iterate_size*sizeof(cl_int), NULL, &ret);
     if(ret != CL_SUCCESS) _error_out("clCreateBuffer", ret);
     ctx->lut_mem = clCreateBuffer(ctx->context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(three_digit_table), (void*)three_digit_table, &ret);
     if(ret != CL_SUCCESS) _error_out("clCreateBuffer", ret);
@@ -248,7 +248,7 @@ void build_OpenCL_worker_kernel(worker_ctx *ctx, size_t auto_iterate_size){
     if(ret != CL_SUCCESS) _error_out("clCreateBuffer", ret);
     ctx->target_mem = clCreateBuffer(ctx->context, CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, sizeof(outbuf), NULL, &ret);
     if(ret != CL_SUCCESS) _error_out("clCreateBuffer", ret);
-    ctx->correct_nonce_mem = clCreateBuffer(ctx->context, CL_MEM_WRITE_ONLY | CL_MEM_ALLOC_HOST_PTR, sizeof(int), NULL, &ret);
+    ctx->correct_nonce_mem = clCreateBuffer(ctx->context, CL_MEM_WRITE_ONLY | CL_MEM_ALLOC_HOST_PTR, sizeof(cl_int), NULL, &ret);
     if(ret != CL_SUCCESS) _error_out("clCreateBuffer", ret);
     clFlush(ctx->command_queue);
     clFinish(ctx->command_queue);
