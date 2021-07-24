@@ -69,16 +69,48 @@ void _replace_string(char *buffer, const char *search, const char *replace){
     }
 }
 
+void _read_pinned_mem(worker_ctx *ctx, void *dst, cl_mem src, size_t size){
+    int ret;
+    char *temp_ptr = (char*)clEnqueueMapBuffer(ctx->command_queue, src, CL_TRUE, CL_MAP_READ, 0, size, 0, NULL, NULL, &ret);
+    if(ret != CL_SUCCESS) _error_out("clEnqueueMapBuffer", ret);
+    clFlush(ctx->command_queue);
+    clFinish(ctx->command_queue);
+
+    memcpy(dst, temp_ptr, size);
+
+    ret = clEnqueueUnmapMemObject(ctx->command_queue, src, temp_ptr, 0, NULL, NULL);
+    if(ret != CL_SUCCESS) _error_out("clEnqueueUnmapMemObject", ret);
+    clFlush(ctx->command_queue);
+    clFinish(ctx->command_queue);
+}
+
+void _write_pinned_mem(worker_ctx *ctx, cl_mem dst, const void *src, size_t size){
+    int ret;
+    char *temp_ptr = (char*)clEnqueueMapBuffer(ctx->command_queue, dst, CL_TRUE, CL_MAP_WRITE, 0, size, 0, NULL, NULL, &ret);
+    if(ret != CL_SUCCESS) _error_out("clEnqueueMapBuffer", ret);
+    clFlush(ctx->command_queue);
+    clFinish(ctx->command_queue);
+
+    memcpy(temp_ptr, src, size);
+
+    ret = clEnqueueUnmapMemObject(ctx->command_queue, dst, temp_ptr, 0, NULL, NULL);
+    if(ret != CL_SUCCESS) _error_out("clEnqueueUnmapMemObject", ret);
+    clFlush(ctx->command_queue);
+    clFinish(ctx->command_queue);
+}
+
+
 int count_OpenCL_devices(cl_device_type device_type){
+    // Find all platforms on host, generally one per manafacturer (AMD, Intel, NVIDIA, etc.)
     int ret;
     cl_uint n_platforms;
     ret = clGetPlatformIDs(0, NULL, &n_platforms);
     if(ret != CL_SUCCESS) _error_out("clGetPlatformIDs", ret);
-
     cl_platform_id *platforms = malloc(n_platforms*sizeof(cl_platform_id));
     ret = clGetPlatformIDs(n_platforms, platforms, NULL);
     if(ret != CL_SUCCESS) _error_out("clGetPlatformIDs", ret);
 
+    // Find all devices on each platform
     int n_devices = 0;
     for(int i = 0; i < n_platforms; i++){
         cl_uint n_devices_in_platform = 0;
@@ -93,15 +125,16 @@ int count_OpenCL_devices(cl_device_type device_type){
 }
 
 void get_OpenCL_devices(cl_device_id *devices, int n_devices, cl_device_type device_type){
+    // We have to redo part of the above function
     int ret;
     cl_uint n_platforms;
     ret = clGetPlatformIDs(0, NULL, &n_platforms);
     if(ret != CL_SUCCESS) _error_out("clGetPlatformIDs", ret);
-
     cl_platform_id *platforms = malloc(n_platforms*sizeof(cl_platform_id));
     ret = clGetPlatformIDs(n_platforms, platforms, NULL);
     if(ret != CL_SUCCESS) _error_out("clGetPlatformIDs", ret);
 
+    // Load the devices of each platform onto a flat list
     int device_idx = 0;
     for(int i = 0; i < n_platforms; i++){
         cl_uint n_devices_on_platform;
@@ -124,20 +157,20 @@ void get_OpenCL_devices(cl_device_id *devices, int n_devices, cl_device_type dev
 }
 
 // written with a multiple contexts, multiple device paradigm in mind
-void init_OpenCL_devices(check_nonce_ctx *devices_ctx, cl_device_id *devices, int n_devices){
+void init_OpenCL_workers(worker_ctx *ctx_arr, cl_device_id *devices, int n_devices){
     int ret;
     for(int i = 0; i < n_devices; i++){
-        // Create an OpenCL context
-        devices_ctx[i].context = clCreateContext(NULL, 1, &devices[i], NULL, NULL, &ret);
+        // Create an OpenCL context (platform is assumed from the device_id)
+        ctx_arr[i].context = clCreateContext(NULL, 1, &devices[i], NULL, NULL, &ret);
         if(ret != CL_SUCCESS) _error_out("clCreateContext", ret);
 
         // Create a command queue for each device
-        devices_ctx[i].command_queue = clCreateCommandQueue(devices_ctx[i].context, devices[i], 0, &ret);
+        ctx_arr[i].command_queue = clCreateCommandQueue(ctx_arr[i].context, devices[i], 0, &ret);
         if(ret != CL_SUCCESS) _error_out("clCreateCommandQueue", ret);
     }
 }
 
-void build_OpenCL_source(check_nonce_ctx *device_ctx, cl_device_id device_id, char **source_files, int n_files){
+void build_OpenCL_worker_source(worker_ctx *ctx, cl_device_id device_id, char **source_files, int n_files){
     // Load the buffer_structs_template.cl into source_str
     FILE *fp;
     char *source_str = (char*)malloc(MAX_SOURCE_SIZE),
@@ -174,73 +207,40 @@ void build_OpenCL_source(check_nonce_ctx *device_ctx, cl_device_id device_id, ch
 
     // Create an OpenCL program from the source string
     cl_int ret;
-    device_ctx->program = clCreateProgramWithSource(device_ctx->context, 1, (const char**)&source_str, (const size_t*)&source_len, &ret);
+    ctx->program = clCreateProgramWithSource(ctx->context, 1, (const char**)&source_str, (const size_t*)&source_len, &ret);
     if(ret != CL_SUCCESS) _error_out("clCreateProgramWithSource", ret);
-    ret = clBuildProgram(device_ctx->program, 1, &device_id, NULL, NULL, NULL);
+    ret = clBuildProgram(ctx->program, 1, &device_id, NULL, NULL, NULL);
 
-    if (ret == CL_BUILD_PROGRAM_FAILURE) {
-        // Determine the size of the log
+    // If there is a compile error, print it
+    if(ret == CL_BUILD_PROGRAM_FAILURE){
         size_t log_size;
-        clGetProgramBuildInfo(device_ctx->program, device_id, CL_PROGRAM_BUILD_LOG, 0, NULL, &log_size);
-        // Allocate memory for the log
-        char *log = (char *) malloc(log_size);
-        // Get the log
-        clGetProgramBuildInfo(device_ctx->program, device_id, CL_PROGRAM_BUILD_LOG, log_size, log, NULL);
-        // Print the log
-        printf("%s\n", log);
+        clGetProgramBuildInfo(ctx->program, device_id, CL_PROGRAM_BUILD_LOG, 0, NULL, &log_size);
+        char *log = (char*)malloc(log_size*sizeof(char));
+        clGetProgramBuildInfo(ctx->program, device_id, CL_PROGRAM_BUILD_LOG, log_size, log, NULL);
+        puts(log);
+        free(log);
     }
-
     if(ret != CL_SUCCESS) _error_out("clBuildProgram", ret);
 
     free(source_str);
     free(temp_str);
 }
 
-void read_pinned_mem(check_nonce_ctx *device_ctx, void *dst, cl_mem src, size_t size){
-    int ret;
-    char *temp_ptr = (char*)clEnqueueMapBuffer(device_ctx->command_queue, src, CL_TRUE, CL_MAP_READ, 0, size, 0, NULL, NULL, &ret);
-    if(ret != CL_SUCCESS) _error_out("clEnqueueMapBuffer", ret);
-    clFlush(device_ctx->command_queue);
-    clFinish(device_ctx->command_queue);
-
-    memcpy(dst, temp_ptr, size);
-
-    ret = clEnqueueUnmapMemObject(device_ctx->command_queue, src, temp_ptr, 0, NULL, NULL);
-    if(ret != CL_SUCCESS) _error_out("clEnqueueUnmapMemObject", ret);
-    clFlush(device_ctx->command_queue);
-    clFinish(device_ctx->command_queue);
-}
-
-void write_pinned_mem(check_nonce_ctx *device_ctx, cl_mem dst, const void *src, size_t size){
-    int ret;
-    char *temp_ptr = (char*)clEnqueueMapBuffer(device_ctx->command_queue, dst, CL_TRUE, CL_MAP_WRITE, 0, size, 0, NULL, NULL, &ret);
-    if(ret != CL_SUCCESS) _error_out("clEnqueueMapBuffer", ret);
-    clFlush(device_ctx->command_queue);
-    clFinish(device_ctx->command_queue);
-
-    memcpy(temp_ptr, src, size);
-
-    ret = clEnqueueUnmapMemObject(device_ctx->command_queue, dst, temp_ptr, 0, NULL, NULL);
-    if(ret != CL_SUCCESS) _error_out("clEnqueueUnmapMemObject", ret);
-    clFlush(device_ctx->command_queue);
-    clFinish(device_ctx->command_queue);
-}
-
-void await_OpenCL(check_nonce_ctx *ctx){
+void await_OpenCL_worker(worker_ctx *ctx){
     clFinish(ctx->command_queue);
 }
 
 
-void build_check_nonce_kernel(check_nonce_ctx *ctx, size_t num_threads){
+void build_OpenCL_worker_kernel(worker_ctx *ctx, size_t auto_iterate_size){
     // Create the OpenCL kernel
     cl_int ret;
     ctx->kernel = clCreateKernel(ctx->program, "check_nonce", &ret);
     if(ret != CL_SUCCESS) _error_out("clCreateKernel", ret);
 
-    // Set the kernel arguments
-    ctx->n_workers = num_threads;
+    ctx->auto_iterate_size = auto_iterate_size;
 
-    ctx->nonce_int_mem = clCreateBuffer(ctx->context, CL_MEM_ALLOC_HOST_PTR, ctx->n_workers*sizeof(int), NULL, &ret);
+    // Build the kernel buffers
+    ctx->nonce_int_mem = clCreateBuffer(ctx->context, CL_MEM_ALLOC_HOST_PTR, ctx->auto_iterate_size*sizeof(int), NULL, &ret);
     if(ret != CL_SUCCESS) _error_out("clCreateBuffer", ret);
     ctx->lut_mem = clCreateBuffer(ctx->context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(three_digit_table), (void*)three_digit_table, &ret);
     if(ret != CL_SUCCESS) _error_out("clCreateBuffer", ret);
@@ -255,41 +255,42 @@ void build_check_nonce_kernel(check_nonce_ctx *ctx, size_t num_threads){
 }
 
 // Needs to be called before the first use of the context
-void init_check_nonce_kernel(check_nonce_ctx *ctx, const char *prefix, const char *target){
+void init_OpenCL_worker_kernel(worker_ctx *ctx, const char *prefix, const char *target){
     // Generate some of the parameters to copy
     int temp = -1;
     _generate_expected(&(ctx->expected_hash), target);
-    int *nonce_arr = malloc(ctx->n_workers*sizeof(int));
-    for(int i = 0; i < ctx->n_workers; i++) nonce_arr[i] = i;
+    int *nonce_arr = malloc(ctx->auto_iterate_size*sizeof(int));
+    for(int i = 0; i < ctx->auto_iterate_size; i++) nonce_arr[i] = i;
 
     // Copy parameters into device memory
-    write_pinned_mem(ctx, ctx->nonce_int_mem, nonce_arr, ctx->n_workers*sizeof(int));
-    write_pinned_mem(ctx, ctx->prefix_mem, prefix, 40*sizeof(char));
-    write_pinned_mem(ctx, ctx->target_mem, &(ctx->expected_hash), sizeof(outbuf));
-    write_pinned_mem(ctx, ctx->correct_nonce_mem, &temp, sizeof(int));
+    _write_pinned_mem(ctx, ctx->nonce_int_mem, nonce_arr, ctx->auto_iterate_size*sizeof(int));
+    _write_pinned_mem(ctx, ctx->prefix_mem, prefix, 40*sizeof(char));
+    _write_pinned_mem(ctx, ctx->target_mem, &(ctx->expected_hash), sizeof(outbuf));
+    _write_pinned_mem(ctx, ctx->correct_nonce_mem, &temp, sizeof(int));
 
+    // Set the kernel arguments
     clSetKernelArg(ctx->kernel, 0, sizeof(cl_mem), &(ctx->nonce_int_mem));
     clSetKernelArg(ctx->kernel, 1, sizeof(cl_mem), &(ctx->lut_mem));
     clSetKernelArg(ctx->kernel, 2, sizeof(cl_mem), &(ctx->prefix_mem));
     clSetKernelArg(ctx->kernel, 3, sizeof(cl_mem), &(ctx->target_mem));
     clSetKernelArg(ctx->kernel, 4, sizeof(cl_mem), &(ctx->correct_nonce_mem));
-    clSetKernelArg(ctx->kernel, 5, sizeof(int), &(ctx->n_workers));
+    clSetKernelArg(ctx->kernel, 5, sizeof(int), &(ctx->auto_iterate_size));
 
     free(nonce_arr);
 }
 
-void launch_check_nonce_kernel(check_nonce_ctx *ctx){
+void launch_OpenCL_worker_kernel(worker_ctx *ctx){
     cl_int ret;
-    ret = clEnqueueNDRangeKernel(ctx->command_queue, ctx->kernel, 1, NULL, &(ctx->n_workers), NULL, 0, NULL, NULL);
+    ret = clEnqueueNDRangeKernel(ctx->command_queue, ctx->kernel, 1, NULL, &(ctx->auto_iterate_size), NULL, 0, NULL, NULL);
     if(ret != CL_SUCCESS) _error_out("clEnqueueNDRangeKernel", ret);
     clFlush(ctx->command_queue);
 }
 
-void dump_check_nonce_kernel(check_nonce_ctx *ctx, int *output){
-    read_pinned_mem(ctx, output, ctx->correct_nonce_mem, sizeof(int));
+void dump_OpenCL_worker_kernel(worker_ctx *ctx, int *output){
+    _read_pinned_mem(ctx, output, ctx->correct_nonce_mem, sizeof(int));
 }
 
-void deconstruct_check_nonce_kernel(check_nonce_ctx *ctx){
+void deconstruct_OpenCL_worker_kernel(worker_ctx *ctx){
     clReleaseMemObject(ctx->nonce_int_mem);
     clReleaseMemObject(ctx->lut_mem);
     clReleaseMemObject(ctx->prefix_mem);

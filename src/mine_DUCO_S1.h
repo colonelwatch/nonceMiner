@@ -57,7 +57,7 @@ long mine_DUCO_S1_OpenCL(
     int prefix_length,
     const unsigned char target_hexdigest[DUCO_S1_SIZE*2],
     int difficulty,
-    check_nonce_ctx *ctx);
+    worker_ctx *ctx);
 
 #ifdef __cplusplus 
 } 

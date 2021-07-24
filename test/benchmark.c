@@ -71,16 +71,16 @@ int main(){
     char gpu_name_buffer[128];
     int n_gpus = count_OpenCL_devices(CL_DEVICE_TYPE_GPU);
     cl_device_id *gpu_ids = (cl_device_id*)malloc(n_gpus*sizeof(cl_device_id));
-    check_nonce_ctx *gpu_ctxs = (check_nonce_ctx*)malloc(n_gpus*sizeof(check_nonce_ctx));
+    worker_ctx *gpu_ctxs = (worker_ctx*)malloc(n_gpus*sizeof(worker_ctx));
     get_OpenCL_devices(gpu_ids, n_gpus, CL_DEVICE_TYPE_GPU);
-    init_OpenCL_devices(gpu_ctxs, gpu_ids, n_gpus);
+    init_OpenCL_workers(gpu_ctxs, gpu_ids, n_gpus);
 
     for(int i = 0; i < n_gpus; i++){
         clGetDeviceInfo(gpu_ids[i], CL_DEVICE_NAME, 128, gpu_name_buffer, NULL);
         printf("Benchmarking GPU %d (%s)... ", i, gpu_name_buffer);
 
-        build_OpenCL_source(&gpu_ctxs[i], gpu_ids[i], filenames, 3);
-        build_check_nonce_kernel(&gpu_ctxs[i], 65536);
+        build_OpenCL_worker_source(&gpu_ctxs[i], gpu_ids[i], filenames, 3);
+        build_OpenCL_worker_kernel(&gpu_ctxs[i], 65536);
 
         for(int j = 0; j < AVERAGE_COUNT; j++){
             GET_TIME(&t0);
@@ -98,7 +98,7 @@ int main(){
         else printf("Failed, ");
         printf("with speed %.2f +/- %.4f MH/s\n", megahash, megahash_error);
         
-        deconstruct_check_nonce_kernel(&gpu_ctxs[i]);
+        deconstruct_OpenCL_worker_kernel(&gpu_ctxs[i]);
     }
 
     free(gpu_ids);

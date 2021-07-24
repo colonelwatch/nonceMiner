@@ -106,7 +106,7 @@ struct _thread_resources{
 enum Intensity {LOW, MEDIUM, NET, EXTREME};
 
 MUTEX_T count_lock; // Protects access to shares counters
-check_nonce_ctx *gpu_ctxs; // Holds contexts to be used by mine_DUCO_S1_OpenCL
+worker_ctx *gpu_ctxs; // Holds contexts to be used by mine_DUCO_S1_OpenCL
 int n_gpus; // Holds size of gpu_ctxs array (and also the number of GPUs)
 int server_is_online = 1;
 int using_xxhash = 0;
@@ -460,9 +460,9 @@ int main(int argc, char **argv){
 
         n_gpus = count_OpenCL_devices(CL_DEVICE_TYPE_GPU);
         cl_device_id *gpu_ids = (cl_device_id*)malloc(n_gpus*sizeof(cl_device_id));
-        gpu_ctxs = (check_nonce_ctx*)malloc(n_gpus*sizeof(check_nonce_ctx));
+        gpu_ctxs = (worker_ctx*)malloc(n_gpus*sizeof(worker_ctx));
         get_OpenCL_devices(gpu_ids, n_gpus, CL_DEVICE_TYPE_GPU);
-        init_OpenCL_devices(gpu_ctxs, gpu_ids, n_gpus);
+        init_OpenCL_workers(gpu_ctxs, gpu_ids, n_gpus);
 
         // Print the names of the detected GPUs
         char gpu_name_buffer[128];
@@ -479,8 +479,8 @@ int main(int argc, char **argv){
             "OpenCL/duco_s1.cl"
         };
         for(int i = 0; i < n_gpus; i++){
-            build_OpenCL_source(&gpu_ctxs[i], gpu_ids[i], filenames, 3);
-            build_check_nonce_kernel(&gpu_ctxs[i], 65536);
+            build_OpenCL_worker_source(&gpu_ctxs[i], gpu_ids[i], filenames, 3);
+            build_OpenCL_worker_kernel(&gpu_ctxs[i], 65536);
         }
 
         puts("OpenCL configuration complete! Will launch GPU threads after CPU threads.");
