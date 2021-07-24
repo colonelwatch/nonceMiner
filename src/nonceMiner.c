@@ -464,27 +464,21 @@ int main(int argc, char **argv){
         get_OpenCL_devices(gpu_ids, n_gpus, CL_DEVICE_TYPE_GPU);
         init_OpenCL_workers(gpu_ctxs, gpu_ids, n_gpus);
 
-        // Print the names of the detected GPUs
-        char gpu_name_buffer[128];
-        for(int i = 0; i < n_gpus; i++){
-            clGetDeviceInfo(gpu_ids[i], CL_DEVICE_NAME, 128, gpu_name_buffer, NULL);
-            printf("GPU %d detected: %s\n", i, gpu_name_buffer);
-        }
-
-        puts("Configuring OpenCL on GPUs and compiling hashing kernels..."); // Inline with the above?
-
         char *filenames[4] = {
             "OpenCL/buffer_structs_template.cl",
             "OpenCL/lookup_tables.cl",
             "OpenCL/sha1.cl",
             "OpenCL/duco_s1.cl"
         };
+        char gpu_name_buffer[128];
         for(int i = 0; i < n_gpus; i++){
+            clGetDeviceInfo(gpu_ids[i], CL_DEVICE_NAME, 128, gpu_name_buffer, NULL);
+            printf("Building source and kernel for GPU %d (%s)...\n", i, gpu_name_buffer);
             build_OpenCL_worker_source(&gpu_ctxs[i], gpu_ids[i], filenames, 4);
             build_OpenCL_worker_kernel(&gpu_ctxs[i], 524288);
         }
 
-        puts("OpenCL configuration complete! Will launch GPU threads after CPU threads.");
+        puts("OpenCL configuration complete, will launch GPU threads after CPU threads.");
         free(gpu_ids);
     }
     if(using_xxhash)
