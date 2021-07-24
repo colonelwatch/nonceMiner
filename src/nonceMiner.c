@@ -480,7 +480,7 @@ int main(int argc, char **argv){
         };
         for(int i = 0; i < n_gpus; i++){
             build_OpenCL_worker_source(&gpu_ctxs[i], gpu_ids[i], filenames, 3);
-            build_OpenCL_worker_kernel(&gpu_ctxs[i], 65536);
+            build_OpenCL_worker_kernel(&gpu_ctxs[i], 524288);
         }
 
         puts("OpenCL configuration complete! Will launch GPU threads after CPU threads.");

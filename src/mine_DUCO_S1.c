@@ -52,7 +52,7 @@ long mine_DUCO_S1_OpenCL(
     launch_OpenCL_worker_kernel(ctx);
     await_OpenCL_worker(ctx);
     dump_OpenCL_worker_kernel(ctx, &correct_nonce);
-    next_val += 65536;
+    next_val += ctx->auto_iterate_size;
     while(next_val < maximum){
         launch_OpenCL_worker_kernel(ctx);
         if(correct_nonce != -1){
@@ -61,7 +61,7 @@ long mine_DUCO_S1_OpenCL(
         }
         await_OpenCL_worker(ctx);
         dump_OpenCL_worker_kernel(ctx, &correct_nonce);
-        next_val += 65536;
+        next_val += ctx->auto_iterate_size;
     }
 
     return -1;

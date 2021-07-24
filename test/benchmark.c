@@ -80,7 +80,7 @@ int main(){
         printf("Benchmarking GPU %d (%s)... ", i, gpu_name_buffer);
 
         build_OpenCL_worker_source(&gpu_ctxs[i], gpu_ids[i], filenames, 3);
-        build_OpenCL_worker_kernel(&gpu_ctxs[i], 65536);
+        build_OpenCL_worker_kernel(&gpu_ctxs[i], 524288);
 
         for(int j = 0; j < AVERAGE_COUNT; j++){
             GET_TIME(&t0);
