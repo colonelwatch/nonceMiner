@@ -70,7 +70,7 @@ void _replace_string(char *buffer, const char *search, const char *replace){
 }
 
 void _read_pinned_mem(worker_ctx *ctx, void *dst, cl_mem src, size_t size){
-    int ret;
+    cl_int ret;
     char *temp_ptr = (char*)clEnqueueMapBuffer(ctx->command_queue, src, CL_TRUE, CL_MAP_READ, 0, size, 0, NULL, NULL, &ret);
     if(ret != CL_SUCCESS) _error_out("clEnqueueMapBuffer", ret);
     clFlush(ctx->command_queue);
@@ -85,7 +85,7 @@ void _read_pinned_mem(worker_ctx *ctx, void *dst, cl_mem src, size_t size){
 }
 
 void _write_pinned_mem(worker_ctx *ctx, cl_mem dst, const void *src, size_t size){
-    int ret;
+    cl_int ret;
     char *temp_ptr = (char*)clEnqueueMapBuffer(ctx->command_queue, dst, CL_TRUE, CL_MAP_WRITE, 0, size, 0, NULL, NULL, &ret);
     if(ret != CL_SUCCESS) _error_out("clEnqueueMapBuffer", ret);
     clFlush(ctx->command_queue);
@@ -102,7 +102,7 @@ void _write_pinned_mem(worker_ctx *ctx, cl_mem dst, const void *src, size_t size
 
 int count_OpenCL_devices(cl_device_type device_type){
     // Find all platforms on host, generally one per manafacturer (AMD, Intel, NVIDIA, etc.)
-    int ret;
+    cl_int ret;
     cl_uint n_platforms;
     ret = clGetPlatformIDs(0, NULL, &n_platforms);
     if(ret != CL_SUCCESS) _error_out("clGetPlatformIDs", ret);
@@ -126,7 +126,7 @@ int count_OpenCL_devices(cl_device_type device_type){
 
 void get_OpenCL_devices(cl_device_id *devices, int n_devices, cl_device_type device_type){
     // We have to redo part of the above function
-    int ret;
+    cl_int ret;
     cl_uint n_platforms;
     ret = clGetPlatformIDs(0, NULL, &n_platforms);
     if(ret != CL_SUCCESS) _error_out("clGetPlatformIDs", ret);
@@ -158,7 +158,7 @@ void get_OpenCL_devices(cl_device_id *devices, int n_devices, cl_device_type dev
 
 // written with a multiple contexts, multiple device paradigm in mind
 void init_OpenCL_workers(worker_ctx *ctx_arr, cl_device_id *devices, int n_devices){
-    int ret;
+    cl_int ret;
     for(int i = 0; i < n_devices; i++){
         // Create an OpenCL context (platform is assumed from the device_id)
         ctx_arr[i].context = clCreateContext(NULL, 1, &devices[i], NULL, NULL, &ret);
@@ -257,16 +257,16 @@ void build_OpenCL_worker_kernel(worker_ctx *ctx, size_t auto_iterate_size){
 // Needs to be called before the first use of the context
 void init_OpenCL_worker_kernel(worker_ctx *ctx, const char *prefix, const char *target){
     // Generate some of the parameters to copy
-    int temp = -1;
-    _generate_expected(&(ctx->expected_hash), target);
-    int *nonce_arr = malloc(ctx->auto_iterate_size*sizeof(int));
+    cl_int *nonce_arr = malloc(ctx->auto_iterate_size*sizeof(cl_int));
     for(int i = 0; i < ctx->auto_iterate_size; i++) nonce_arr[i] = i;
+    _generate_expected(&(ctx->expected_hash), target);
+    cl_int temp = -1;
 
     // Copy parameters into device memory
-    _write_pinned_mem(ctx, ctx->nonce_int_mem, nonce_arr, ctx->auto_iterate_size*sizeof(int));
+    _write_pinned_mem(ctx, ctx->nonce_int_mem, nonce_arr, ctx->auto_iterate_size*sizeof(cl_int));
     _write_pinned_mem(ctx, ctx->prefix_mem, prefix, 40*sizeof(char));
     _write_pinned_mem(ctx, ctx->target_mem, &(ctx->expected_hash), sizeof(outbuf));
-    _write_pinned_mem(ctx, ctx->correct_nonce_mem, &temp, sizeof(int));
+    _write_pinned_mem(ctx, ctx->correct_nonce_mem, &temp, sizeof(cl_int));
 
     // Set the kernel arguments
     clSetKernelArg(ctx->kernel, 0, sizeof(cl_mem), &(ctx->nonce_int_mem));
