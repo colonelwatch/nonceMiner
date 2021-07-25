@@ -2,42 +2,19 @@
 
 unsigned char _hex_to_int(char high_hex, char low_hex){
     int sum = 0;
-    switch(low_hex){
-        case '0': sum += 0; break;
-        case '1': sum += 1; break;
-        case '2': sum += 2; break;
-        case '3': sum += 3; break;
-        case '4': sum += 4; break;
-        case '5': sum += 5; break;
-        case '6': sum += 6; break;
-        case '7': sum += 7; break;
-        case '8': sum += 8; break;
-        case '9': sum += 9; break;
-        case 'a': sum += 10; break;
-        case 'b': sum += 11; break;
-        case 'c': sum += 12; break;
-        case 'd': sum += 13; break;
-        case 'e': sum += 14; break;
-        case 'f': sum += 15; break;
-    }
-    switch(high_hex){
-        case '0': sum += 0*16; break;
-        case '1': sum += 1*16; break;
-        case '2': sum += 2*16; break;
-        case '3': sum += 3*16; break;
-        case '4': sum += 4*16; break;
-        case '5': sum += 5*16; break;
-        case '6': sum += 6*16; break;
-        case '7': sum += 7*16; break;
-        case '8': sum += 8*16; break;
-        case '9': sum += 9*16; break;
-        case 'a': sum += 10*16; break;
-        case 'b': sum += 11*16; break;
-        case 'c': sum += 12*16; break;
-        case 'd': sum += 13*16; break;
-        case 'e': sum += 14*16; break;
-        case 'f': sum += 15*16; break;
-    }
+
+    if(high_hex >= '0' && high_hex <= '9')
+        sum += high_hex - '0';
+    else if(high_hex >= 'a' && high_hex <= 'f')
+        sum += high_hex - 'a' + 10;
+    
+    sum *= 16;
+
+    if(low_hex >= '0' && low_hex <= '9')
+        sum += low_hex - '0';
+    else if(low_hex >= 'a' && low_hex <= 'f')
+        sum += low_hex - 'a' + 10;
+
     return sum;
 }
 
@@ -59,14 +36,14 @@ void _error_out(char* func_name, cl_int ret){
 }
 
 void _replace_string(char *buffer, const char *search, const char *replace){
+    char *temp = malloc(MAX_SOURCE_SIZE);
     char *ptr = strstr(buffer, search);
     if(ptr){
-        char *temp = malloc(MAX_SOURCE_SIZE);
         strcpy(temp, ptr+strlen(search));
         strcpy(ptr, replace);
         strcpy(ptr+strlen(replace), temp);
-        free(temp);
     }
+    free(temp);
 }
 
 void _read_pinned_mem(worker_ctx *ctx, void *dst, cl_mem src, size_t size){

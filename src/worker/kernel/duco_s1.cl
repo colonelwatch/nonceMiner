@@ -27,7 +27,7 @@ int fast_print_int(char *buf, int num){
     char temp_buf[12];
     char *temp_buf_ptr = temp_buf+12;
     int n_digits = count_digits(num);
-    temp_buf[11] = "0";
+    temp_buf[11] = '0'; // Necessary for the zero corner case
     
     for(int working_num = num; working_num != 0; working_num /= 1000){
         temp_buf_ptr -= 3;
