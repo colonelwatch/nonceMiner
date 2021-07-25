@@ -49,7 +49,7 @@ int compare(unsigned int *hash, __constant const unsigned int *target)
 __kernel void check_nonce(
     __global int *nonce_int, 
     __constant const char *prefix, 
-    __constant const outbuf *target, 
+    __constant const unsigned int *target, 
     __global int *correct_nonce, 
     int auto_iterate_size
 )
@@ -65,7 +65,7 @@ __kernel void check_nonce(
 
     hash_private(buffer_ptr, length, outbuf);
     
-    if(compare(outbuf, target->buffer)) *correct_nonce = nonce_int[idx];
+    if(compare(outbuf, target)) *correct_nonce = nonce_int[idx];
 
     nonce_int[idx] += auto_iterate_size;
 }
