@@ -5,7 +5,9 @@
 #include <openssl/sha.h>
 
 #include "utils/counter.h"
+#ifndef NO_OPENCL
 #include "worker/worker.h"
+#endif
 
 #define DUCO_S1_SIZE 20
 
@@ -42,6 +44,7 @@ long mine_DUCO_S1(
     const unsigned char target_hexdigest[DUCO_S1_SIZE*2],
     int difficulty);
 
+#ifndef NO_OPENCL
 /*
  *  mine_DUCO_S1_OpenCL - Returns the nonce that generated target_hexdigest
  *  
@@ -58,6 +61,7 @@ long mine_DUCO_S1_OpenCL(
     const unsigned char target_hexdigest[DUCO_S1_SIZE*2],
     int difficulty,
     worker_ctx *ctx);
+#endif
 
 #ifdef __cplusplus 
 } 

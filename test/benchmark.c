@@ -61,6 +61,7 @@ int main(){
     double megahash_arr[AVERAGE_COUNT], megahash, megahash_error;
 
     
+    #ifndef NO_OPENCL
     printf("Benchmarking mine_DUCO_S1_OpenCL... \n");
 
     char *filenames[4] = {
@@ -104,6 +105,7 @@ int main(){
 
     free(gpu_ids);
     free(gpu_ctxs);
+    #endif
 
 
     printf("Benchmarking mine_DUCO_S1... ");
@@ -142,4 +144,6 @@ int main(){
     else printf("Failed, ");
     printf("with speed %.2f +/- %.4f MH/s\n", megahash, megahash_error);
     printf("Approximate four-core performance: %.2f +/- %.4f MH/s\n", megahash*4, megahash_error*4);
+
+    return 0;
 }

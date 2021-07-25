@@ -106,8 +106,10 @@ struct _thread_resources{
 enum Intensity {LOW, MEDIUM, NET, EXTREME};
 
 MUTEX_T count_lock; // Protects access to shares counters
+#ifndef NO_OPENCL
 worker_ctx *gpu_ctxs; // Holds contexts to be used by mine_DUCO_S1_OpenCL
 int n_gpus; // Holds size of gpu_ctxs array (and also the number of GPUs)
+#endif
 int server_is_online = 1;
 int using_xxhash = 0;
 int shared_accepted = 0, shared_rejected = 0;
@@ -236,31 +238,39 @@ void* mining_routine(void* arg){
                 }
             }
             else{
-                if(buf[40] == ','){ // If the prefix is a SHA1 hex digest (40 chars long)...
+                #ifndef NO_OPENCL
+                // If the prefix is a SHA1 hex digest (40 chars long) and OpenCL is enabled...
+                if(buf[40] == ',' && shared_data->opencl_thread){
                     diff = atoi((const char*) &buf[82]);
                     print_formatted_log(thread_code, "New job from %s with difficulty %d", server_address, diff);
-                    if(shared_data->opencl_thread){ // If this is an OpenCL thread...
-                            // Then use the OpenCL path (not availible for xxhash prefixes yet)
-                            nonce = mine_DUCO_S1_OpenCL(
-                            (const unsigned char*) &buf[0],
-                            40,
-                            (const unsigned char*) &buf[41],
-                            diff, 
-                            &gpu_ctxs[shared_data->thread_id]
-                        );
-                    }
-                    else{
-                        nonce = mine_DUCO_S1(
-                            (const unsigned char*) &buf[0],
-                            40,
-                            (const unsigned char*) &buf[41],
-                            diff
-                        );
-                    }
+                    // Then use the OpenCL path (not availible for xxhash prefixes yet)
+                    nonce = mine_DUCO_S1_OpenCL(
+                        (const unsigned char*) &buf[0],
+                        40,
+                        (const unsigned char*) &buf[41],
+                        diff, 
+                        &gpu_ctxs[shared_data->thread_id]
+                    );
                 }
-                else{ // Else the prefix is probably an XXHASH hex digest (16 chars long)...
+                else if(buf[40] == ','){ // Else if the prefix still is a SHA1 hex digest...
+                #else
+                // Start conditional here instead if OpenCL is disabled
+                if(buf[40] == ','){
+                #endif
+                    diff = atoi((const char*) &buf[82]);
+                    print_formatted_log(thread_code, "New job from %s with difficulty %d", server_address, diff);
+                    // Then use the OpenSSL path with a SHA1 prefix
+                    nonce = mine_DUCO_S1(
+                        (const unsigned char*) &buf[0],
+                        40,
+                        (const unsigned char*) &buf[41],
+                        diff
+                    );
+                }
+                else{ // Else the prefix is probably an xxhash hex digest (16 chars long)...
                     diff = atoi((const char*) &buf[58]);
                     print_formatted_log(thread_code, "New job from %s with difficulty %d", server_address, diff);
+                    // Then use the OpenSSL path with a xxhash prefix
                     nonce = mine_DUCO_S1(
                         (const unsigned char*) &buf[0],
                         16,
@@ -278,7 +288,7 @@ void* mining_routine(void* arg){
 
             // Generates and sends result string
             if(shared_data->opencl_thread)
-                len = sprintf(buf, "%ld,%d,nonceMiner v2.0.0,%s OpenCL\n", nonce, local_hashrate, identifier);
+                len = sprintf(buf, "%ld,%d,nonceMiner v2.0.0 OpenCL,%s\n", nonce, local_hashrate, identifier);
             else
                 len = sprintf(buf, "%ld,%d,nonceMiner v2.0.0,%s\n", nonce, local_hashrate, identifier);
             len = send(soc, buf, len, 0);
@@ -409,8 +419,13 @@ int main(int argc, char **argv){
                 }
                 break;
             case 'g':
+                #ifndef NO_OPENCL
                 using_OpenCL = 1;
                 break;
+                #else
+                fprintf(stderr, "Option -g requires compiling with OpenCL support.\n");
+                return 1;
+                #endif
             case '?':
                 if(optopt == 'a' || optopt == 'i' || optopt == 'o' || optopt == 'u' || optopt == 'w' || optopt == 't')
                     fprintf(stderr, "Option -%c requires an argument.\n", optopt);
@@ -455,6 +470,7 @@ int main(int argc, char **argv){
     printf("identifier '%s', ", identifier);
     printf("difficulty '%s', ", diff_string);
     printf("and %d thread(s).\n", n_threads);
+    #ifndef NO_OPENCL
     if(using_OpenCL){
         printf("OpenCL flag detected, detecting GPUs...\n");
 
@@ -481,12 +497,18 @@ int main(int argc, char **argv){
         puts("OpenCL configuration complete, will launch GPU threads after CPU threads.");
         free(gpu_ids);
     }
+    #endif
     if(using_xxhash)
         printf("Running in xxhash mode. WARNING: Per-thread hashrates over 0.9 MH/s may be rejected.\n");
     printf("Starting threads...\n");
 
-    struct _thread_resources *thread_data_arr = calloc(n_threads+n_gpus, sizeof(struct _thread_resources));
-    THREAD_T *mining_threads = malloc((n_threads+n_gpus)*sizeof(THREAD_T));
+    #ifndef NO_OPENCL
+    int total_threads = n_threads+n_gpus;
+    #else
+    int total_threads = n_threads;
+    #endif
+    struct _thread_resources *thread_data_arr = calloc(total_threads, sizeof(struct _thread_resources));
+    THREAD_T *mining_threads = malloc(total_threads*sizeof(THREAD_T));
     MUTEX_CREATE(&count_lock);
     for(int i = 0; i < n_threads; i++){
         thread_data_arr[i].thread_id = i;
@@ -494,6 +516,7 @@ int main(int argc, char **argv){
         THREAD_CREATE(&mining_threads[i], mining_routine, &thread_data_arr[i]);
         SLEEP(1);
     }
+    #ifndef NO_OPENCL
     if(using_OpenCL){
         for(int i = 0; i < n_gpus; i++){
             thread_data_arr[n_threads+i].thread_id = i;
@@ -502,6 +525,7 @@ int main(int argc, char **argv){
             SLEEP(1);
         }
     }
+    #endif
     
     THREAD_T ping_thread;
     THREAD_CREATE(&ping_thread, ping_routine, NULL);
@@ -516,7 +540,7 @@ int main(int argc, char **argv){
         SLEEP(10);
         
         int total_hashrate = 0;
-        for(int i = 0; i < n_threads+n_gpus; i++) total_hashrate += thread_data_arr[i].hashrate;
+        for(int i = 0; i < total_threads; i++) total_hashrate += thread_data_arr[i].hashrate;
         float megahash = (float)total_hashrate/1000000;
 
         MUTEX_LOCK(&count_lock);

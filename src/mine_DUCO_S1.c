@@ -35,6 +35,7 @@ long mine_DUCO_S1(
     return -1;
 }
 
+#ifndef NO_OPENCL
 long mine_DUCO_S1_OpenCL(
     const unsigned char *input_prefix,
     int prefix_length,
@@ -62,5 +63,7 @@ long mine_DUCO_S1_OpenCL(
         increment_OpenCL_worker_kernel(ctx);
     }
 
+    await_OpenCL_worker(ctx);
     return -1;
 }
+#endif
