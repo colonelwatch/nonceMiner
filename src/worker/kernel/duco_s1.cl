@@ -26,19 +26,12 @@ void lookup_3_digits(char *arr, int num){
 int fast_print_int(char *buf, int num){
     char temp_buf[12];
     char *temp_buf_ptr = temp_buf+12;
-    int n_digits = 0;
+    int n_digits = count_digits(num);
+    temp_buf[11] = "0";
     
-    if(num == 0){ // Edge case, never enters for loop if num == 0
+    for(int working_num = num; working_num != 0; working_num /= 1000){
         temp_buf_ptr -= 3;
-        lookup_3_digits(temp_buf_ptr, 0);
-        n_digits = 1;
-    }
-    else{
-        for(int working_num = num; working_num != 0; working_num /= 1000){
-            temp_buf_ptr -= 3;
-            lookup_3_digits(temp_buf_ptr, working_num % 1000);
-        }
-        n_digits = count_digits(num);
+        lookup_3_digits(temp_buf_ptr, working_num % 1000);
     }
 
     for(int i = 0; i < n_digits; i++) buf[i] = temp_buf[i+12-n_digits];
