@@ -1,5 +1,5 @@
 ifeq ($(OS),Windows_NT)
-	opencl_libs := -lOpenCL -I "$(INTELOCLSDKROOT)include" -L "$(INTELOCLSDKROOT)lib\x64" -D CL_TARGET_OPENCL_VERSION=120
+    opencl_libs := -lOpenCL -I".\include" -Wl,-L"C:\Windows\System32" -D CL_TARGET_OPENCL_VERSION=120 
 	openssl_libs := -I"$(OPENSSL_ROOT_DIR)\include" -L"$(OPENSSL_ROOT_DIR)\lib" -llibcrypto
 	libs := $(openssl_libs) $(opencl_libs) -lws2_32
 	CPF := copy /y
