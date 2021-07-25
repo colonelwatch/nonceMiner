@@ -12,15 +12,6 @@
 
 #define MAX_SOURCE_SIZE 0x100000
 
-// Input/output formats specified by sha1.cl
-typedef struct{
-    cl_uint length; // in bytes
-    cl_uint buffer[13];
-} inbuf;
-typedef struct{
-    cl_uint buffer[5];
-} outbuf;
-
 // OpenCL worker context
 typedef struct{
     cl_context context;
@@ -28,13 +19,13 @@ typedef struct{
     cl_program program;
     cl_kernel kernel;
     cl_mem nonce_int_mem, prefix_mem, target_mem, correct_nonce_mem;
-    outbuf expected_hash;
+    cl_uint expected_hash[5];
     size_t auto_iterate_size;
 } worker_ctx;
 
 // internal private functions
 unsigned char _hex_to_int(char high_hex, char low_hex);
-void _generate_expected(outbuf *expected, const char target_hexdigest[40]);
+void _generate_expected(cl_uint *expected, const char target_hexdigest[40]);
 void _error_out(char* func_name, cl_int ret);
 void _replace_string(char *buffer, const char *search, const char *replace);
 void _read_pinned_mem(worker_ctx *ctx, void *dst, cl_mem src, size_t size);

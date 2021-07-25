@@ -46,10 +46,10 @@ int fast_print_int(char *buf, int num){
     return n_digits;
 }
 
-int compare(outbuf *hash, __constant const outbuf *target)
+int compare(unsigned int *hash, __constant const unsigned int *target)
 {
     for(int i = 0; i < 5; i++)
-        if(hash->buffer[i] != target->buffer[i]) return 0;
+        if(hash[i] != target[i]) return 0;
     return 1;
 }
 
@@ -62,17 +62,17 @@ __kernel void check_nonce(
 )
 {
     unsigned int idx = get_global_id(0);
-    inbuf sha1_input;
-    outbuf sha1_output;
-    char *buffer_ptr = (char*)sha1_input.buffer;
+    unsigned int inbuf[13], outbuf[5];
+    char *buffer_ptr = (char*)inbuf;
+    int length;
 
     for(int i = 0; i < 40; i++) buffer_ptr[i] = prefix[i];
     for(int i = 40; i < 52; i++) buffer_ptr[i] = 0; // Pads buffer with zeroes (sha1 kernel expects this)
-    sha1_input.length = 40+fast_print_int(buffer_ptr+40, nonce_int[idx]); // But before printing (this way is faster)
+    length = 40+fast_print_int(buffer_ptr+40, nonce_int[idx]); // But before printing (this way is faster)
 
-    hash_private(sha1_input.buffer, sha1_input.length, sha1_output.buffer);
-
-    if(compare(&sha1_output, target)) *correct_nonce = nonce_int[idx];
+    hash_private(buffer_ptr, length, outbuf);
+    
+    if(compare(outbuf, target->buffer)) *correct_nonce = nonce_int[idx];
 
     nonce_int[idx] += auto_iterate_size;
 }

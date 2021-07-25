@@ -41,7 +41,7 @@ unsigned char _hex_to_int(char high_hex, char low_hex){
     return sum;
 }
 
-void _generate_expected(outbuf *expected, const char target_hexdigest[40]){
+void _generate_expected(cl_uint *expected, const char target_hexdigest[40]){
     for(int j = 0; j < 5; j++){
         unsigned int num = 0;
         for(int k = 3; k >= 0; k--){
@@ -49,7 +49,7 @@ void _generate_expected(outbuf *expected, const char target_hexdigest[40]){
                  low_hex = target_hexdigest[j*8+k*2+1];
             num |= _hex_to_int(high_hex, low_hex) << k*8;
         }
-        expected->buffer[j] = num;
+        expected[j] = num;
     }
 }
 
@@ -245,7 +245,7 @@ void build_OpenCL_worker_kernel(worker_ctx *ctx, size_t auto_iterate_size){
     if(ret != CL_SUCCESS) _error_out("clCreateBuffer", ret);
     ctx->prefix_mem = clCreateBuffer(ctx->context, CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, 40*sizeof(char), NULL, &ret);
     if(ret != CL_SUCCESS) _error_out("clCreateBuffer", ret);
-    ctx->target_mem = clCreateBuffer(ctx->context, CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, sizeof(outbuf), NULL, &ret);
+    ctx->target_mem = clCreateBuffer(ctx->context, CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, 5*sizeof(cl_uint), NULL, &ret);
     if(ret != CL_SUCCESS) _error_out("clCreateBuffer", ret);
     ctx->correct_nonce_mem = clCreateBuffer(ctx->context, CL_MEM_WRITE_ONLY | CL_MEM_ALLOC_HOST_PTR, sizeof(cl_int), NULL, &ret);
     if(ret != CL_SUCCESS) _error_out("clCreateBuffer", ret);
@@ -258,13 +258,13 @@ void init_OpenCL_worker_kernel(worker_ctx *ctx, const char *prefix, const char *
     // Generate some of the parameters to copy
     cl_int *nonce_arr = malloc(ctx->auto_iterate_size*sizeof(cl_int));
     for(int i = 0; i < ctx->auto_iterate_size; i++) nonce_arr[i] = i;
-    _generate_expected(&(ctx->expected_hash), target);
+    _generate_expected(ctx->expected_hash, target);
     cl_int temp = -1;
 
     // Copy parameters into device memory
     _write_pinned_mem(ctx, ctx->nonce_int_mem, nonce_arr, ctx->auto_iterate_size*sizeof(cl_int));
     _write_pinned_mem(ctx, ctx->prefix_mem, prefix, 40*sizeof(char));
-    _write_pinned_mem(ctx, ctx->target_mem, &(ctx->expected_hash), sizeof(outbuf));
+    _write_pinned_mem(ctx, ctx->target_mem, ctx->expected_hash, 5*sizeof(cl_uint));
     _write_pinned_mem(ctx, ctx->correct_nonce_mem, &temp, sizeof(cl_int));
 
     // Set the kernel arguments

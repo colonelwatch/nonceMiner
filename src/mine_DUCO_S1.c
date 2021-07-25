@@ -35,7 +35,6 @@ long mine_DUCO_S1(
     return -1;
 }
 
-// mine_DUCO_S1_OpenCL and advance_nonce_arr take majority (we're CPU bound...)
 long mine_DUCO_S1_OpenCL(
     const unsigned char *input_prefix,
     int prefix_length,
