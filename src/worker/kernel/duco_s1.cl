@@ -50,8 +50,7 @@ __kernel void check_nonce(
     __global int *next_nonce, 
     __constant const char *prefix, 
     __constant const unsigned int *target, 
-    __global int *correct_nonce, 
-    int auto_iterate_size
+    __global int *correct_nonce
 )
 {
     unsigned int idx = get_global_id(0), current_nonce = (*next_nonce)+idx;
@@ -67,5 +66,4 @@ __kernel void check_nonce(
     
     // Conditional execution (halts other threads)
     if(compare(outbuf, target)) *correct_nonce = current_nonce;
-    if(idx == 0) *next_nonce += auto_iterate_size;
 }

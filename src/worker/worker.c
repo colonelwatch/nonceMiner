@@ -233,11 +233,12 @@ void build_OpenCL_worker_kernel(worker_ctx *ctx, size_t auto_iterate_size){
 // Needs to be called before the first use of the context
 void init_OpenCL_worker_kernel(worker_ctx *ctx, const char *prefix, const char *target){
     // Generate some of the parameters to copy
-    cl_int temp_zero = 0, temp_neg1 = -1;
+    cl_int temp_neg1 = -1;
+    ctx->current_nonce = 0;
     _generate_expected(ctx->expected_hash, target);
 
     // Copy parameters into device memory
-    _write_pinned_mem(ctx, ctx->nonce_int_mem, &temp_zero, sizeof(cl_int));
+    _write_pinned_mem(ctx, ctx->nonce_int_mem, &(ctx->current_nonce), sizeof(cl_int));
     _write_pinned_mem(ctx, ctx->prefix_mem, prefix, 40*sizeof(char));
     _write_pinned_mem(ctx, ctx->target_mem, ctx->expected_hash, 5*sizeof(cl_uint));
     _write_pinned_mem(ctx, ctx->correct_nonce_mem, &temp_neg1, sizeof(cl_int));
@@ -247,7 +248,6 @@ void init_OpenCL_worker_kernel(worker_ctx *ctx, const char *prefix, const char *
     clSetKernelArg(ctx->kernel, 1, sizeof(cl_mem), &(ctx->prefix_mem));
     clSetKernelArg(ctx->kernel, 2, sizeof(cl_mem), &(ctx->target_mem));
     clSetKernelArg(ctx->kernel, 3, sizeof(cl_mem), &(ctx->correct_nonce_mem));
-    clSetKernelArg(ctx->kernel, 4, sizeof(int), &(ctx->auto_iterate_size));
 }
 
 void launch_OpenCL_worker_kernel(worker_ctx *ctx){
@@ -259,6 +259,12 @@ void launch_OpenCL_worker_kernel(worker_ctx *ctx){
 
 void dump_OpenCL_worker_kernel(worker_ctx *ctx, int *output){
     _read_pinned_mem(ctx, output, ctx->correct_nonce_mem, sizeof(int));
+}
+
+void increment_OpenCL_worker_kernel(worker_ctx *ctx){
+    ctx->current_nonce += ctx->auto_iterate_size;
+    _write_pinned_mem(ctx, ctx->nonce_int_mem, &(ctx->current_nonce), sizeof(cl_int));
+    clSetKernelArg(ctx->kernel, 0, sizeof(cl_mem), &(ctx->nonce_int_mem));
 }
 
 void deconstruct_OpenCL_worker_kernel(worker_ctx *ctx){

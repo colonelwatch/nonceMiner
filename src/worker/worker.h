@@ -21,6 +21,7 @@ typedef struct{
     cl_mem nonce_int_mem, prefix_mem, target_mem, correct_nonce_mem;
     cl_uint expected_hash[5];
     size_t auto_iterate_size;
+    cl_int current_nonce;
 } worker_ctx;
 
 // internal private functions
@@ -43,6 +44,7 @@ void build_OpenCL_worker_kernel(worker_ctx *ctx, size_t auto_iterate_size);
 void init_OpenCL_worker_kernel(worker_ctx *ctx, const char *prefix, const char *target);
 void launch_OpenCL_worker_kernel(worker_ctx *ctx);
 void dump_OpenCL_worker_kernel(worker_ctx *ctx, int *output);
+void increment_OpenCL_worker_kernel(worker_ctx *ctx);
 void deconstruct_OpenCL_worker_kernel(worker_ctx *ctx);
 
 #endif
