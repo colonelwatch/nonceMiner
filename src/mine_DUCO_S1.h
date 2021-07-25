@@ -5,7 +5,7 @@
 #include <openssl/sha.h>
 
 #include "utils/counter.h"
-#include "worker/opencl.h"
+#include "worker/worker.h"
 
 #define DUCO_S1_SIZE 20
 

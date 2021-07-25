@@ -1,4 +1,4 @@
-#include "opencl.h"
+#include "worker.h"
 
 unsigned char _hex_to_int(char high_hex, char low_hex){
     int sum = 0;
