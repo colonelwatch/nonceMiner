@@ -241,7 +241,7 @@ void build_OpenCL_worker_kernel(worker_ctx *ctx, size_t auto_iterate_size){
     ctx->auto_iterate_size = auto_iterate_size;
 
     // Build the kernel buffers
-    ctx->nonce_int_mem = clCreateBuffer(ctx->context, CL_MEM_ALLOC_HOST_PTR, ctx->auto_iterate_size*sizeof(cl_int), NULL, &ret);
+    ctx->nonce_int_mem = clCreateBuffer(ctx->context, CL_MEM_ALLOC_HOST_PTR, sizeof(cl_int), NULL, &ret);
     if(ret != CL_SUCCESS) _error_out("clCreateBuffer", ret);
     ctx->prefix_mem = clCreateBuffer(ctx->context, CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, 40*sizeof(char), NULL, &ret);
     if(ret != CL_SUCCESS) _error_out("clCreateBuffer", ret);
@@ -256,16 +256,14 @@ void build_OpenCL_worker_kernel(worker_ctx *ctx, size_t auto_iterate_size){
 // Needs to be called before the first use of the context
 void init_OpenCL_worker_kernel(worker_ctx *ctx, const char *prefix, const char *target){
     // Generate some of the parameters to copy
-    cl_int *nonce_arr = malloc(ctx->auto_iterate_size*sizeof(cl_int));
-    for(int i = 0; i < ctx->auto_iterate_size; i++) nonce_arr[i] = i;
+    cl_int temp_zero = 0, temp_neg1 = -1;
     _generate_expected(ctx->expected_hash, target);
-    cl_int temp = -1;
 
     // Copy parameters into device memory
-    _write_pinned_mem(ctx, ctx->nonce_int_mem, nonce_arr, ctx->auto_iterate_size*sizeof(cl_int));
+    _write_pinned_mem(ctx, ctx->nonce_int_mem, &temp_zero, sizeof(cl_int));
     _write_pinned_mem(ctx, ctx->prefix_mem, prefix, 40*sizeof(char));
     _write_pinned_mem(ctx, ctx->target_mem, ctx->expected_hash, 5*sizeof(cl_uint));
-    _write_pinned_mem(ctx, ctx->correct_nonce_mem, &temp, sizeof(cl_int));
+    _write_pinned_mem(ctx, ctx->correct_nonce_mem, &temp_neg1, sizeof(cl_int));
 
     // Set the kernel arguments
     clSetKernelArg(ctx->kernel, 0, sizeof(cl_mem), &(ctx->nonce_int_mem));
@@ -273,8 +271,6 @@ void init_OpenCL_worker_kernel(worker_ctx *ctx, const char *prefix, const char *
     clSetKernelArg(ctx->kernel, 2, sizeof(cl_mem), &(ctx->target_mem));
     clSetKernelArg(ctx->kernel, 3, sizeof(cl_mem), &(ctx->correct_nonce_mem));
     clSetKernelArg(ctx->kernel, 4, sizeof(int), &(ctx->auto_iterate_size));
-
-    free(nonce_arr);
 }
 
 void launch_OpenCL_worker_kernel(worker_ctx *ctx){

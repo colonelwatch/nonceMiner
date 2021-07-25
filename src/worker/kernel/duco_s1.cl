@@ -47,25 +47,25 @@ int compare(unsigned int *hash, __constant const unsigned int *target)
 }
 
 __kernel void check_nonce(
-    __global int *nonce_int, 
+    __global int *next_nonce, 
     __constant const char *prefix, 
     __constant const unsigned int *target, 
     __global int *correct_nonce, 
     int auto_iterate_size
 )
 {
-    unsigned int idx = get_global_id(0);
+    unsigned int idx = get_global_id(0), current_nonce = (*next_nonce)+idx;
     unsigned int inbuf[13], outbuf[5];
     char *buffer_ptr = (char*)inbuf;
     int length;
 
     for(int i = 0; i < 40; i++) buffer_ptr[i] = prefix[i];
     for(int i = 40; i < 52; i++) buffer_ptr[i] = 0; // Pads buffer with zeroes (sha1 kernel expects this)
-    length = 40+fast_print_int(buffer_ptr+40, nonce_int[idx]); // But before printing (this way is faster)
+    length = 40+fast_print_int(buffer_ptr+40, current_nonce); // But before printing (this way is faster)
 
     hash_private(buffer_ptr, length, outbuf);
     
-    if(compare(outbuf, target)) *correct_nonce = nonce_int[idx];
-
-    nonce_int[idx] += auto_iterate_size;
+    // Conditional execution (halts other threads)
+    if(compare(outbuf, target)) *correct_nonce = current_nonce;
+    if(idx == 0) *next_nonce += auto_iterate_size;
 }
