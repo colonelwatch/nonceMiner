@@ -1,13 +1,23 @@
 # nonceMiner
 
-A quick casual project I wrote to try out applying hash midstate caching on the cryptocurrency project [duino-coin](https://github.com/revoxhere/duino-coin). The idea is to cache the SHA-1 algorithm's state after it processes the prefix (creating the midstate) then to finish the hash with the guessed nonces repeatedly, but while reusing the midstate, until the right nonce is found. This saves a lot of calculation, and it's already being used in Bitcoin mining.
+A casual project about running the DUCO-S1 algorithm, from revoxhere's [duino-coin](https://github.com/revoxhere/duino-coin) project, as damn fast as possible. Written in C, it leverages OpenSSL and exploits hash midstate caching on the CPU, and it uses OpenCL on the GPU (no hash midstate caching at the moment).
 
-Aside from server bottlenecks, my i7-8550U averaged 22 to 25MH/s. In other words, it's probably the fastest DUCO-S1 miner around, barring GPUs. To try it out yourself, grab a release! There, you can find a pre-compiled Windows binary and instructions to compile for Linux below. When prompted about processess, use the number of CPU threads on your system or slightly more.
+Not familiar with hash midstate caching? The idea is to cache the SHA-1 algorithm's state after it processes the prefix (creating the midstate) then to finish the hash with the guessed nonces repeatedly, but while reusing the midstate, until the right nonce is found. This saves a lot of calculation, and it's already being used in Bitcoin mining.
 
-This program used to be written in Python with some C wrapped in Cython, but I have since rewritten it in pure C with native cross-platform compatibility.
+My laptop has a maximum CPU+GPU performance of 33.8 + 85.12 = 118.92 MH/s (Intel i7-8550U + UHD Graphics 630) when running `benchmark.exe`. After network / master server delays and power throttling, the online performance is about 50 MH/s. In other words, it's the fastest open-source DUCO-S1 miner around. Here are some other maximum figures as July 25, 2021:
+
+* Nvidia RTX 3070: 1.79 GH/s
+* Nvidia GTX 1060 6GB: 612 MH/s
+* Nvidia GTX 770: 343 MH/s
+* Ryzen 5 3600: 106 MH/s
+* Raspberry Pi 3B (CPU only): 4 MH/s
+
+To try it out yourself, grab a release! There, you can find a pre-compiled Windows binary or instructions to compile for Linux below.
+
+Disclaimer: This project does not represent my personal endorsement of duino-coin, just that their algorithm can be run really, *really* fast.
 
 ## Running
-The nonceMiner binary is dependent on OpenSSL. The OpenSSL light binary is availible for Windows on [slproweb.com](https://slproweb.com/products/Win32OpenSSL.html), and this usually comes pre-installed on Linux.
+The nonceMiner binary is dependent on OpenSSL and OpenCL. The OpenSSL light binary is availible for Windows on [slproweb.com](https://slproweb.com/products/Win32OpenSSL.html), and this usually comes pre-installed on Linux. The OpenCL runtime should come with your graphics driver.
 
 The binary is executable with the following options.
 
@@ -26,10 +36,12 @@ Please note that the xxhash mode is additionally up to five times faster, but th
 ## Compiling
 I compiled this before in Windows 10 and WSL2 (Ubuntu 20.04 LTS), so results outside these environments may vary.
 
-Prerequisites: `gcc` (MinGW on Windows), `libssl-dev` (at least a development OpenSSL binary in Windows, I used the [slproweb.com](https://slproweb.com/products/Win32OpenSSL.html) copy, *not the "light" binary*)
+Prerequisites: `gcc` (MinGW on Windows), `libssl-dev` (at least a development OpenSSL binary in Windows, I used the [slproweb.com](https://slproweb.com/products/Win32OpenSSL.html) copy, *not the "light" binary*), `libOpenCL` from your GPU drivers (applies to both Linux and Windows)
 
 1) Call `make nonceMiner` in the repo directory
-2) Execute `./bin/nonceMiner -u <your username here>` in the repo directory, or pull the compiled binary from `bin`
+  * To compile without OpenCL, pass `-D NO_OPENCL` in CFLAGS
+2) Navigate to the bin folder with `cd bin`
+3) Execute `./nonceMiner -u <your username here>`, or pull the compiled binary AND the OpenCL sources from `bin` (if compiled with OpenCL)
 
 Additionally, the following test programs are available:
 * `benchmark` - Evaluate DUCO-S1 and xxhash performance on your machine
@@ -130,4 +142,29 @@ This project uses xxhash.
  *   - xxHash homepage: https://www.xxhash.com
  *   - xxHash source repository: https://github.com/Cyan4973/xxHash
  */
+```
+
+This project uses SHA1 OpenCL code from opencl_brute.
+```
+MIT License
+
+Copyright (c) 2017 Bjoern Kerler
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
 ```
