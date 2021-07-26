@@ -38,17 +38,17 @@ else
 endif
 
 nonceMiner: $(SRC_FILES) | bin bin/OpenCL
-	gcc $^ $(CFLAGS) -o bin/$@ $(libs)
+	gcc $^ -O3 -Wall -o bin/$@ $(libs) $(CFLAGS)
 	$(KERNEL_COPY_COMMAND)
 
 nonceMiner_minimal: $(filter-out src/nonceMiner.c, $(SRC_FILES)) test/nonceMiner_minimal.c | bin
-	gcc $^ $(CFLAGS) -o bin/$@ $(libs)
+	gcc $^ -O3 -Wall -o bin/$@ $(libs) $(CFLAGS)
 
 nonceMiner_minimal_xxhash: $(filter-out src/nonceMiner.c, $(SRC_FILES)) test/nonceMiner_minimal_xxhash.c | bin
-	gcc $^ $(CFLAGS) -o bin/$@ $(libs)
+	gcc $^ -O3 -Wall -o bin/$@ $(libs) $(CFLAGS)
 
 benchmark: $(filter-out src/nonceMiner.c, $(SRC_FILES)) test/benchmark.c | bin bin/OpenCL
-	gcc $^ $(CFLAGS) -o bin/$@ $(openssl_libs) $(opencl_libs) -lm
+	gcc $^ -O3 -Wall -o bin/$@ $(openssl_libs) $(opencl_libs) -lm $(CFLAGS)
 	$(KERNEL_COPY_COMMAND)
 
 bin/OpenCL:
