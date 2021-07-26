@@ -26,7 +26,6 @@ else
 	PSEP := /
 endif
 
-CFLAGS := -O3 -Wall
 SRC_FILES := $(wildcard src/*.c) $(wildcard src/**/*.c)
 
 ifeq (1, $(USING_OPENCL))

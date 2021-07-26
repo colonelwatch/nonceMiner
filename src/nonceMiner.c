@@ -145,6 +145,7 @@ void print_help(){
     puts("  -i    Job difficulty/intensity {LOW, MEDIUM, NET, EXTREME}");
     puts("  -o    Node URL of the format <host>:<port>");
     puts("  -u    Username for mining");
+    puts("  -w    Identifier for mining");
     puts("  -t    Number of threads");
     puts("  -g    Spawn an OpenCL thread for each GPU detected");
 }

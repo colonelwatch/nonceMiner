@@ -28,7 +28,9 @@ Options:
   -i    Job difficulty/intensity {LOW, MEDIUM, NET, EXTREME}
   -o    Node URL of the format <host>:<port>
   -u    Username for mining
+  -w    Identifier for mining
   -t    Number of threads
+  -g    Spawn an OpenCL thread for each GPU detected
 ```
 
 Please note that the xxhash mode is additionally up to five times faster, but the server imposes a per-thread hashrate limit of 0.9 MH/s. Exceeding this limit will cause shares to be rejected.
@@ -39,7 +41,7 @@ I compiled this before in Windows 10 and WSL2 (Ubuntu 20.04 LTS), so results out
 Prerequisites: `gcc` (MinGW on Windows), `libssl-dev` (at least a development OpenSSL binary in Windows, I used the [slproweb.com](https://slproweb.com/products/Win32OpenSSL.html) copy, *not the "light" binary*), `libOpenCL` from your GPU drivers (applies to both Linux and Windows)
 
 1) Call `make nonceMiner` in the repo directory
-  * To compile without OpenCL, pass `-D NO_OPENCL` in CFLAGS
+  * To compile without OpenCL, call `make nonceMiner CFLAGS='-D NO_OPENCL'` in the repo directory
 2) Navigate to the bin folder with `cd bin`
 3) Execute `./nonceMiner -u <your username here>`, or pull the compiled binary AND the OpenCL sources from `bin` (if compiled with OpenCL)
 
