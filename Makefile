@@ -26,15 +26,16 @@ else
 	PSEP := /
 endif
 
+CFLAGS := -O3 -Wall
+SRC_FILES := $(wildcard src/*.c) $(wildcard src/**/*.c)
+
 ifeq (1, $(USING_OPENCL))
 	FOLDERS := bin bin/OpenCL
 	KERNEL_COPY_COMMAND := $(CPF) src$(PSEP)worker$(PSEP)kernel$(PSEP)*.cl bin$(PSEP)OpenCL
 else
 	FOLDERS := bin
+	SRC_FILES := $(filter-out $(wildcard src/worker/**), $(SRC_FILES))
 endif
-
-CFLAGS := -O3 -Wall
-SRC_FILES := $(wildcard src/*.c) $(wildcard src/**/*.c)
 
 nonceMiner: $(SRC_FILES) | bin bin/OpenCL
 	gcc $^ $(CFLAGS) -o bin/$@ $(libs)

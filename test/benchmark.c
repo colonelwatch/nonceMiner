@@ -22,7 +22,9 @@
         ((t1_ptr)->tv_sec-(t0_ptr)->tv_sec)*1000+((t1_ptr)->tv_nsec-(t0_ptr)->tv_nsec)/1000000
 #endif
 
+#ifndef NO_OPENCL
 #include "../src/worker/worker.h"
+#endif
 #include "../src/mine_DUCO_S1.h"
 #include "../src/mine_xxhash.h"
 
