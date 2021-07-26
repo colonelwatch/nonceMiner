@@ -34,3 +34,36 @@ long mine_DUCO_S1(
     }
     return -1;
 }
+
+#ifndef NO_OPENCL
+long mine_DUCO_S1_OpenCL(
+    const unsigned char *input_prefix,
+    int prefix_length,
+    const unsigned char target_hexdigest[DUCO_S1_SIZE*2],
+    int difficulty,
+    worker_ctx *ctx)
+{
+    int maximum = 100*difficulty+1;
+    int correct_nonce;
+    init_OpenCL_worker_kernel(ctx, (const char*)input_prefix, (const char*)target_hexdigest);
+
+    // We stagger GPU and CPU work here to avoid serial execution, and the GPU starts first
+    launch_OpenCL_worker_kernel(ctx);
+    await_OpenCL_worker(ctx);
+    dump_OpenCL_worker_kernel(ctx, &correct_nonce);
+    increment_OpenCL_worker_kernel(ctx);
+    while(ctx->current_nonce < maximum){
+        launch_OpenCL_worker_kernel(ctx);
+        if(correct_nonce != -1){
+            await_OpenCL_worker(ctx);
+            return correct_nonce;
+        }
+        await_OpenCL_worker(ctx);
+        dump_OpenCL_worker_kernel(ctx, &correct_nonce);
+        increment_OpenCL_worker_kernel(ctx);
+    }
+
+    await_OpenCL_worker(ctx);
+    return -1;
+}
+#endif

@@ -5,6 +5,9 @@
 #include <openssl/sha.h>
 
 #include "utils/counter.h"
+#ifndef NO_OPENCL
+#include "worker/worker.h"
+#endif
 
 #define DUCO_S1_SIZE 20
 
@@ -40,6 +43,25 @@ long mine_DUCO_S1(
     int prefix_length,
     const unsigned char target_hexdigest[DUCO_S1_SIZE*2],
     int difficulty);
+
+#ifndef NO_OPENCL
+/*
+ *  mine_DUCO_S1_OpenCL - Returns the nonce that generated target_hexdigest
+ *  
+ *  input_prefix should point to the beginning of the prefix. Because the prefix can be 
+ *  either 40 or 16 characters long, the prefix_length parameter is exposed. Pass in 
+ *  whichever is the correct length. target_hexdigest should point to the beginning of the
+ *  target hex digest.
+ * 
+ *  Builds and executes an OpenCL kernel on the GPU specified by the ctx.
+ * */
+long mine_DUCO_S1_OpenCL(
+    const unsigned char *input_prefix,
+    int prefix_length,
+    const unsigned char target_hexdigest[DUCO_S1_SIZE*2],
+    int difficulty,
+    worker_ctx *ctx);
+#endif
 
 #ifdef __cplusplus 
 } 
