@@ -271,6 +271,8 @@ void* mining_routine(void* arg){
                 else{ // Else the prefix is probably an xxhash hex digest (16 chars long)...
                     diff = atoi((const char*) &buf[58]);
                     print_formatted_log(thread_code, "New job from %s with difficulty %d", server_address, diff);
+                    if(shared_data->opencl_thread)
+                        print_formatted_log(thread_code, "WARNING: xxhash prefix detected (not supported on GPU yet), defaulting to CPU");
                     // Then use the OpenSSL path with a xxhash prefix
                     nonce = mine_DUCO_S1(
                         (const unsigned char*) &buf[0],
