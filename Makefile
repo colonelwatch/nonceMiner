@@ -1,54 +1,54 @@
-ifeq (NO_OPENCL, $(findstring NO_OPENCL, $(CFLAGS)))
-	USING_OPENCL := 0
+include_args := -I "./include"
+# library_args :=
+
+ifeq ($(findstring -D NO_OPENCL, $(CFLAGS)), -D NO_OPENCL)
+	using_opencl := 0
 else
-	USING_OPENCL := 1
+	using_opencl := 1
 endif
 
-ifeq ($(OS),Windows_NT)
-    opencl_libs := -lOpenCL -I".\include" -Wl,-L"C:\Windows\System32" -D CL_TARGET_OPENCL_VERSION=120 
-	openssl_libs := -I"$(OPENSSL_ROOT_DIR)\include" -L"$(OPENSSL_ROOT_DIR)\lib" -llibcrypto
-	ifeq (1, $(USING_OPENCL))
-		libs := $(openssl_libs) $(opencl_libs) -lws2_32
-	else
-		libs := $(openssl_libs) -lws2_32
+ifeq ($(OS), Windows_NT)
+	ifeq ($(using_opencl), 1)
+		library_args += -lOpenCL -Wl,-L "C:\Windows\System32" -D CL_TARGET_OPENCL_VERSION=120
 	endif
-	CPF := copy /y
+	include_args += -I "$(OPENSSL_ROOT_DIR)\include"
+	library_args += -llibcrypto -L "$(OPENSSL_ROOT_DIR)\lib" -lws2_32
+    CPF := copy /y
 	PSEP := \\
 else
-	opencl_libs := -lOpenCL -D CL_TARGET_OPENCL_VERSION=120
-	openssl_libs := -lcrypto
-	ifeq (1, $(USING_OPENCL))
-		libs := $(openssl_libs) $(opencl_libs) -pthread
-	else
-		libs := $(openssl_libs) -pthread
+	ifeq ($(using_opencl), 1)
+		library_args += -lOpenCL -D CL_TARGET_OPENCL_VERSION=120
 	endif
+	library_args += -lcrypto -pthread
 	CPF := cp -f
 	PSEP := /
 endif
 
 SRC_FILES := $(wildcard src/*.c) $(wildcard src/**/*.c)
+CFLAGS := -O3 -Wall
 
-ifeq (1, $(USING_OPENCL))
-	FOLDERS := bin bin/OpenCL
-	KERNEL_COPY_COMMAND := $(CPF) src$(PSEP)worker$(PSEP)kernel$(PSEP)*.cl bin$(PSEP)OpenCL
+ifeq ($(using_opencl), 1)
+	folders := bin bin/OpenCL
+	# If NO_OPENCL is present, kernel_copy_command is an empty command
+	kernel_copy_command := $(CPF) src$(PSEP)worker$(PSEP)kernel$(PSEP)*.cl bin$(PSEP)OpenCL
 else
-	FOLDERS := bin
+	folders := bin
 	SRC_FILES := $(filter-out $(wildcard src/worker/**), $(SRC_FILES))
 endif
 
-nonceMiner: $(SRC_FILES) | bin bin/OpenCL
-	gcc $^ -O3 -Wall -o bin/$@ $(libs) $(CFLAGS)
-	$(KERNEL_COPY_COMMAND)
+nonceMiner: $(SRC_FILES) | $(folders)
+	gcc $^ $(include_args) $(library_args) -o bin/$@ $(CFLAGS)
+	$(kernel_copy_command)
 
 nonceMiner_minimal: $(filter-out src/nonceMiner.c, $(SRC_FILES)) test/nonceMiner_minimal.c | bin
-	gcc $^ -O3 -Wall -o bin/$@ $(libs) $(CFLAGS)
+	gcc $^ $(include_args) $(library_args) -o bin/$@ $(CFLAGS)
 
 nonceMiner_minimal_xxhash: $(filter-out src/nonceMiner.c, $(SRC_FILES)) test/nonceMiner_minimal_xxhash.c | bin
-	gcc $^ -O3 -Wall -o bin/$@ $(libs) $(CFLAGS)
+	gcc $^ $(include_args) $(library_args) -o bin/$@ $(CFLAGS)
 
-benchmark: $(filter-out src/nonceMiner.c, $(SRC_FILES)) test/benchmark.c | bin bin/OpenCL
-	gcc $^ -O3 -Wall -o bin/$@ $(openssl_libs) $(opencl_libs) -lm $(CFLAGS)
-	$(KERNEL_COPY_COMMAND)
+benchmark: $(filter-out src/nonceMiner.c, $(SRC_FILES)) test/benchmark.c | $(folders)
+	gcc $^ $(include_args) $(library_args) -lm -o bin/$@ $(CFLAGS)
+	$(kernel_copy_command)
 
 bin/OpenCL:
 	mkdir bin$(PSEP)OpenCL
