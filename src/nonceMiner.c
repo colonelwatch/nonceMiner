@@ -136,7 +136,7 @@ void print_formatted_log(const char* code, const char* format, ...){
 }
 
 void print_help(){
-    puts("nonceMiner v2.0.0 by colonelwatch");
+    puts("nonceMiner v2.1.0 by colonelwatch");
     puts("A miner applying hash midstate caching and other optimzations to the duinocoin project");
     puts("Typical usage: nonceMiner -u <your username here> [OPTIONS]");
     puts("Options:");
@@ -291,9 +291,9 @@ void* mining_routine(void* arg){
 
             // Generates and sends result string
             if(shared_data->opencl_thread)
-                len = sprintf(buf, "%ld,%d,nonceMiner v2.0.0 OpenCL,%s\n", nonce, local_hashrate, identifier);
+                len = sprintf(buf, "%ld,%d,nonceMiner v2.1.0 OpenCL,%s\n", nonce, local_hashrate, identifier);
             else
-                len = sprintf(buf, "%ld,%d,nonceMiner v2.0.0,%s\n", nonce, local_hashrate, identifier);
+                len = sprintf(buf, "%ld,%d,nonceMiner v2.1.0,%s\n", nonce, local_hashrate, identifier);
             len = send(soc, buf, len, 0);
             if(len == -1){
                 SPRINT_SOCK_ERRNO(buf, sizeof(buf), SOCK_ERRNO);
@@ -468,7 +468,7 @@ int main(int argc, char **argv){
     else
         job_request_len = sprintf(job_request, "JOB,%s,%s\n", username, diff_string);
 
-    printf("Initializing nonceMiner v2.0.0...\n");
+    printf("Initializing nonceMiner v2.1.0...\n");
     printf("Configured with username '%s', ", username);
     printf("identifier '%s', ", identifier);
     printf("difficulty '%s', ", diff_string);
