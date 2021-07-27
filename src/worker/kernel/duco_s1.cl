@@ -53,8 +53,8 @@ __kernel void check_nonce(
     __global int *correct_nonce
 )
 {
+    __private unsigned int inbuf[13], outbuf[5];
     unsigned int idx = get_global_id(0), current_nonce = (*next_nonce)+idx;
-    unsigned int inbuf[13], outbuf[5];
     char *buffer_ptr = (char*)inbuf;
     int length;
 
@@ -62,7 +62,7 @@ __kernel void check_nonce(
     for(int i = 40; i < 52; i++) buffer_ptr[i] = 0; // Pads buffer with zeroes (sha1 kernel expects this)
     length = 40+fast_print_int(buffer_ptr+40, current_nonce); // But before printing (this way is faster)
 
-    hash_private(buffer_ptr, length, outbuf);
+    hash_private(inbuf, length, outbuf);
     
     // Conditional execution (halts other threads)
     if(compare(outbuf, target)) *correct_nonce = current_nonce;
