@@ -34,6 +34,7 @@
     }while(0)
     // Sleep defines
     #define SLEEP(seconds) Sleep((seconds)*1000)
+    #define SLEEP_MS(milliseconds) Sleep(milliseconds)
     // Threading defines
     #define THREAD_T HANDLE // is type void*
     #define THREAD_CREATE(thread_ptr, func, arg_ptr) \
@@ -78,6 +79,10 @@
     }while(0)
     // Sleep defines
     #define SLEEP(seconds) sleep(seconds)
+    #define SLEEP_MS(milliseconds) do{\
+        const struct timespec req = {.tv_sec = (milliseconds)/1000, .tv_nsec = ((milliseconds)%1000)*1000000};\
+        nanosleep(&req, NULL);\
+    }while(0)
     // Threading defines
     #define THREAD_T pthread_t
     #define THREAD_CREATE(thread_ptr, func, arg_ptr) pthread_create(thread_ptr, NULL, func, arg_ptr)
@@ -298,10 +303,7 @@ void* mining_routine(void* arg){
             if(hashrate_limit != 0){
                 int tdelta_ms = DIFF_TIME_MS(&t3, &t2);
                 int expected_ms = nonce/hashrate_limit/1000;
-                if(tdelta_ms < expected_ms){
-                    int sleep_seconds = (expected_ms-tdelta_ms)/1000+1; // Rounding up here for safety margin
-                    SLEEP(sleep_seconds);
-                }
+                if(tdelta_ms < expected_ms) SLEEP_MS(expected_ms - tdelta_ms);
             }
             
             // Calculates hashrate to report back to server
