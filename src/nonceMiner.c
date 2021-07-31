@@ -47,9 +47,10 @@
     #define GET_TIME(t_ptr) *(t_ptr) = GetTickCount64()
     #define DIFF_TIME_MS(t1_ptr, t0_ptr) *(t1_ptr)-*(t0_ptr)
     // Socket error reporting defines
+    #define LANG_ID 0x409 // English
     #define SOCK_ERRNO WSAGetLastError()
     #define SPRINT_SOCK_ERRNO(buf, buf_size, errno) do{\
-        int len = FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM, NULL, errno, 0, buf, buf_size, NULL);\
+        int len = FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM, NULL, errno, LANG_ID, buf, buf_size, NULL);\
         buf[len-1] = 0;\
     }while(0)
 #else
