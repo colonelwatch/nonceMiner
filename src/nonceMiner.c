@@ -116,6 +116,7 @@ int using_xxhash = 0;
 int shared_accepted = 0, shared_rejected = 0;
 int job_request_len;
 int program_name_overrided = 0;
+float hashrate_limit = 0; // Expressed in MH/s
 char job_request[256];
 char server_address[256] = "149.91.88.18"; // Default server should be pulse-pool-1
 char server_port[16] = "6000";
@@ -151,13 +152,14 @@ void print_help(){
     puts("  -w    Identifier for mining");
     puts("  -n    Program name for mining (overrides default name)");
     puts("  -t    Number of threads");
+    puts("  -l    Hashrate limit per-thread, applies to CPU threads only (MH/s)");
     puts("  -g    Spawn an OpenCL thread for each GPU detected");
 }
 
 void* mining_routine(void* arg){
     int len;
     char buf[256], thread_code[16];
-    TIMESTAMP_T t1, t0;
+    TIMESTAMP_T t0, t1, t2, t3;
     struct _thread_resources *shared_data = arg;
     if(shared_data->opencl_thread)
         sprintf(thread_code, "gpu%d", shared_data->thread_id);
@@ -220,11 +222,14 @@ void* mining_routine(void* arg){
             }
             buf[len] = 0;
 
+            GET_TIME(&t2);
+
             int diff;
             long nonce;
             if(using_xxhash){
                 if(buf[40] == ','){ // If the prefix is a SHA1 hex digest (40 chars long)...
                     diff = atoi((const char*) &buf[58]);
+                    print_formatted_log(thread_code, "New job from %s with difficulty %d", server_address, diff);
                     nonce = mine_xxhash(
                         (const unsigned char*) &buf[0],
                         40,
@@ -234,6 +239,7 @@ void* mining_routine(void* arg){
                 }
                 else{ // Else the prefix is probably an XXHASH hex digest (16 chars long)...
                     diff = atoi((const char*) &buf[34]);
+                    print_formatted_log(thread_code, "New job from %s with difficulty %d", server_address, diff);
                     nonce = mine_xxhash(
                         (const unsigned char*) &buf[0],
                         16,
@@ -284,6 +290,17 @@ void* mining_routine(void* arg){
                         (const unsigned char*) &buf[17],
                         diff
                     );
+                }
+            }
+
+            // If a hashrate limit is in place, sleep until it is met
+            GET_TIME(&t3);
+            if(hashrate_limit != 0){
+                int tdelta_ms = DIFF_TIME_MS(&t3, &t2);
+                int expected_ms = nonce/hashrate_limit/1000;
+                if(tdelta_ms < expected_ms){
+                    int sleep_seconds = (expected_ms-tdelta_ms)/1000+1; // Rounding up here for safety margin
+                    SLEEP(sleep_seconds);
                 }
             }
             
@@ -382,7 +399,7 @@ int main(int argc, char **argv){
     int opt;
     opterr = 0; // Disables default getopt error messages
 
-    while((opt = getopt(argc, argv, "ha:i:o:u:w:n:t:g")) != -1){
+    while((opt = getopt(argc, argv, "ha:i:o:u:w:n:t:l:g")) != -1){
         switch(opt){
             case 'h':
                 print_help();
@@ -426,6 +443,12 @@ int main(int argc, char **argv){
             case 't':
                 if(sscanf(optarg, "%d", &n_threads) != 1 || n_threads < 0){
                     fprintf(stderr, "Option -t requires a positive integer argument (or zero if using GPUs).\n");
+                    return 1;
+                }
+                break;
+            case 'l':
+                if(sscanf(optarg, "%f", &hashrate_limit) != 1 || hashrate_limit < 0){
+                    fprintf(stderr, "Option -l requires a positive float argument.\n");
                     return 1;
                 }
                 break;
@@ -483,6 +506,8 @@ int main(int argc, char **argv){
     printf("and %d thread(s).\n", n_threads);
     if(program_name_overrided)
         printf("Program name overrided to '%s'...\n", program_name);
+    if(hashrate_limit > 0)
+        printf("Hashrate limit set to %.2f MH/s...\n", hashrate_limit);
     #ifndef NO_OPENCL
     if(using_OpenCL){
         printf("OpenCL flag detected, detecting GPUs...\n");
