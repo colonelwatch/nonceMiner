@@ -161,6 +161,19 @@ void print_help(){
     puts("  -g    Spawn an OpenCL thread for each GPU detected");
 }
 
+void parse_job_string(int *difficulty, int *prefix_length, unsigned char *prefix, unsigned char *target, const char *job_string){
+    int i;
+    const char *ptr = job_string;
+    i = 0;
+    while(*ptr != ',') prefix[i++] = *(ptr++);
+    *prefix_length = i;
+    ptr++; // Skip the ','
+    i = 0;
+    while(*ptr != ',') target[i++] = *(ptr++);
+    ptr++;
+    *difficulty = atoi(ptr);
+}
+
 void* mining_routine(void* arg){
     int len;
     char buf[256], thread_code[16];
@@ -228,74 +241,27 @@ void* mining_routine(void* arg){
             buf[len] = 0;
 
             GET_TIME(&t2);
+            
+            // Parse the job string dynamically
+            int diff, prefix_length;
+            unsigned char prefix[64], target[64];
+            parse_job_string(&diff, &prefix_length, prefix, target, buf);
+            print_formatted_log(thread_code, "New job from %s with difficulty %d", server_address, diff);
 
-            int diff;
+            // Solves the job according to the thread parameters
             long nonce;
-            if(using_xxhash){
-                if(buf[40] == ','){ // If the prefix is a SHA1 hex digest (40 chars long)...
-                    diff = atoi((const char*) &buf[58]);
-                    print_formatted_log(thread_code, "New job from %s with difficulty %d", server_address, diff);
-                    nonce = mine_xxhash(
-                        (const unsigned char*) &buf[0],
-                        40,
-                        (const unsigned char*) &buf[41],
-                        diff
-                    );
-                }
-                else{ // Else the prefix is probably an XXHASH hex digest (16 chars long)...
-                    diff = atoi((const char*) &buf[34]);
-                    print_formatted_log(thread_code, "New job from %s with difficulty %d", server_address, diff);
-                    nonce = mine_xxhash(
-                        (const unsigned char*) &buf[0],
-                        16,
-                        (const unsigned char*) &buf[17],
-                        diff
-                    );
-                }
-            }
+            #ifndef NO_OPENCL
+            if(shared_data->opencl_thread && prefix_length == 40)
+                nonce = mine_DUCO_S1_OpenCL(prefix, 40, target, diff, &gpu_ctxs[shared_data->thread_id]);
+            else if(using_xxhash)
+            #else
+            if(using_xxhash)
+            #endif
+                nonce = mine_xxhash(prefix, prefix_length, target, diff);
             else{
-                #ifndef NO_OPENCL
-                // If the prefix is a SHA1 hex digest (40 chars long) and OpenCL is enabled...
-                if(buf[40] == ',' && shared_data->opencl_thread){
-                    diff = atoi((const char*) &buf[82]);
-                    print_formatted_log(thread_code, "New job from %s with difficulty %d", server_address, diff);
-                    // Then use the OpenCL path (not availible for xxhash prefixes yet)
-                    nonce = mine_DUCO_S1_OpenCL(
-                        (const unsigned char*) &buf[0],
-                        40,
-                        (const unsigned char*) &buf[41],
-                        diff, 
-                        &gpu_ctxs[shared_data->thread_id]
-                    );
-                }
-                else if(buf[40] == ','){ // Else if the prefix still is a SHA1 hex digest...
-                #else
-                // Start conditional here instead if OpenCL is disabled
-                if(buf[40] == ','){
-                #endif
-                    diff = atoi((const char*) &buf[82]);
-                    print_formatted_log(thread_code, "New job from %s with difficulty %d", server_address, diff);
-                    // Then use the OpenSSL path with a SHA1 prefix
-                    nonce = mine_DUCO_S1(
-                        (const unsigned char*) &buf[0],
-                        40,
-                        (const unsigned char*) &buf[41],
-                        diff
-                    );
-                }
-                else{ // Else the prefix is probably an xxhash hex digest (16 chars long)...
-                    diff = atoi((const char*) &buf[58]);
-                    print_formatted_log(thread_code, "New job from %s with difficulty %d", server_address, diff);
-                    if(shared_data->opencl_thread)
-                        print_formatted_log(thread_code, "WARNING: xxhash prefix detected (not supported on GPU yet), defaulting to CPU");
-                    // Then use the OpenSSL path with a xxhash prefix
-                    nonce = mine_DUCO_S1(
-                        (const unsigned char*) &buf[0],
-                        16,
-                        (const unsigned char*) &buf[17],
-                        diff
-                    );
-                }
+                if(shared_data->opencl_thread)
+                    print_formatted_log(thread_code, "WARNING: xxhash prefix detected (not supported on GPU yet), defaulting to CPU");
+                nonce = mine_DUCO_S1(prefix, prefix_length, target, diff);
             }
 
             // If a hashrate limit is in place, sleep until it is met
