@@ -29,7 +29,9 @@ Options:
   -o    Node URL of the format <host>:<port>
   -u    Username for mining
   -w    Identifier for mining
+  -n    Program name for mining (overrides default name)
   -t    Number of threads
+  -l    Hashrate limit per-thread, applies to CPU threads only (MH/s)
   -g    Spawn an OpenCL thread for each GPU detected
 ```
 

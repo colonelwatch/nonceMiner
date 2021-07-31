@@ -127,7 +127,7 @@ char server_address[256] = "149.91.88.18"; // Default server should be pulse-poo
 char server_port[16] = "6000";
 char username[128];
 char identifier[128] = ""; // Default value should be empty string
-char program_name[64] = "nonceMiner v2.1.1"; // Can be overrided with -n option
+char program_name[64] = "nonceMiner v2.1.2"; // Can be overrided with -n option
 
 // Prints log as formatted along with timestamp, newline, and four-letter code
 void print_formatted_log(const char* code, const char* format, ...){
@@ -145,7 +145,7 @@ void print_formatted_log(const char* code, const char* format, ...){
 }
 
 void print_help(){
-    puts("nonceMiner v2.1.1 by colonelwatch");
+    puts("nonceMiner v2.1.2 by colonelwatch");
     puts("A miner applying hash midstate caching and other optimzations to the duinocoin project");
     puts("Typical usage: nonceMiner -u <your username here> [OPTIONS]");
     puts("Options:");
@@ -501,7 +501,7 @@ int main(int argc, char **argv){
     else
         job_request_len = sprintf(job_request, "JOB,%s,%s\n", username, diff_string);
 
-    printf("Initializing nonceMiner v2.1.1...\n");
+    printf("Initializing nonceMiner v2.1.2...\n");
     printf("Configured with username '%s', ", username);
     printf("identifier '%s', ", identifier);
     printf("difficulty '%s', ", diff_string);
