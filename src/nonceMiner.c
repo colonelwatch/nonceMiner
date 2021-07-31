@@ -115,11 +115,13 @@ int server_is_online = 1;
 int using_xxhash = 0;
 int shared_accepted = 0, shared_rejected = 0;
 int job_request_len;
+int program_name_overrided = 0;
 char job_request[256];
 char server_address[256] = "149.91.88.18"; // Default server should be pulse-pool-1
 char server_port[16] = "6000";
 char username[128];
 char identifier[128] = ""; // Default value should be empty string
+char program_name[64] = "nonceMiner v2.1.1"; // Can be overrided with -n option
 
 // Prints log as formatted along with timestamp, newline, and four-letter code
 void print_formatted_log(const char* code, const char* format, ...){
@@ -147,6 +149,7 @@ void print_help(){
     puts("  -o    Node URL of the format <host>:<port>");
     puts("  -u    Username for mining");
     puts("  -w    Identifier for mining");
+    puts("  -n    Program name for mining (overrides default name)");
     puts("  -t    Number of threads");
     puts("  -g    Spawn an OpenCL thread for each GPU detected");
 }
@@ -292,9 +295,9 @@ void* mining_routine(void* arg){
 
             // Generates and sends result string
             if(shared_data->opencl_thread)
-                len = sprintf(buf, "%ld,%d,nonceMiner v2.1.1 OpenCL,%s\n", nonce, local_hashrate, identifier);
+                len = sprintf(buf, "%ld,%d,%s,%s\n", nonce, local_hashrate, program_name, identifier);
             else
-                len = sprintf(buf, "%ld,%d,nonceMiner v2.1.1,%s\n", nonce, local_hashrate, identifier);
+                len = sprintf(buf, "%ld,%d,%s,%s\n", nonce, local_hashrate, program_name, identifier);
             len = send(soc, buf, len, 0);
             if(len == -1){
                 SPRINT_SOCK_ERRNO(buf, sizeof(buf), SOCK_ERRNO);
@@ -379,7 +382,7 @@ int main(int argc, char **argv){
     int opt;
     opterr = 0; // Disables default getopt error messages
 
-    while((opt = getopt(argc, argv, "ha:i:o:u:w:t:g")) != -1){
+    while((opt = getopt(argc, argv, "ha:i:o:u:w:n:t:g")) != -1){
         switch(opt){
             case 'h':
                 print_help();
@@ -416,6 +419,10 @@ int main(int argc, char **argv){
             case 'w':
                 strcpy(identifier, optarg);
                 break;
+            case 'n':
+                strcpy(program_name, optarg);
+                program_name_overrided = 1;
+                break;
             case 't':
                 if(sscanf(optarg, "%d", &n_threads) != 1 || n_threads < 0){
                     fprintf(stderr, "Option -t requires a positive integer argument (or zero if using GPUs).\n");
@@ -431,7 +438,7 @@ int main(int argc, char **argv){
                 return 1;
                 #endif
             case '?':
-                if(optopt == 'a' || optopt == 'i' || optopt == 'o' || optopt == 'u' || optopt == 'w' || optopt == 't')
+                if(optopt == 'a' || optopt == 'i' || optopt == 'o' || optopt == 'u' || optopt == 'w' || optopt == 'n' || optopt == 't')
                     fprintf(stderr, "Option -%c requires an argument.\n", optopt);
                 else
                     fprintf(stderr, "Unknown option '-%c'.\n", optopt);
@@ -474,6 +481,8 @@ int main(int argc, char **argv){
     printf("identifier '%s', ", identifier);
     printf("difficulty '%s', ", diff_string);
     printf("and %d thread(s).\n", n_threads);
+    if(program_name_overrided)
+        printf("Program name overrided to '%s'...\n", program_name);
     #ifndef NO_OPENCL
     if(using_OpenCL){
         printf("OpenCL flag detected, detecting GPUs...\n");
