@@ -538,8 +538,10 @@ int main(int argc, char **argv){
         free(gpu_ids);
     }
     #endif
-    if(using_xxhash)
-        printf("Running in xxhash mode. WARNING: Per-thread hashrates over 0.9 MH/s may be rejected.\n");
+    if(using_xxhash){
+        printf("Running in xxhash mode...\nWARNING: Per-thread hashrates over 0.9 MH/s may be rejected.\n");
+        if(diff != EXTREME) printf("WARNING: xxhash mode called with -i flag. xxhash mode does not have configurable difficulty/intensity.\n");
+    }
     printf("Starting threads...\n");
 
     #ifndef NO_OPENCL
