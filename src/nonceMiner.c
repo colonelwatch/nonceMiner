@@ -280,7 +280,7 @@ void* mining_routine(void* arg){
 
             // Generates and sends result string
             if(shared_data->opencl_thread)
-                len = sprintf(buf, "%ld,%d,%s OpenCL,%s\n", nonce, local_hashrate, program_name, identifier);
+                len = sprintf(buf, "%ld,%d,%s,%s\n", nonce, local_hashrate, program_name, identifier);
             else
                 len = sprintf(buf, "%ld,%d,%s,%s\n", nonce, local_hashrate, program_name, identifier);
             len = send(soc, buf, len, 0);
@@ -335,7 +335,7 @@ void* ping_routine(void *arg){
 
         // Resolves master server address and port then connects
         struct addrinfo *dns_result;
-        len = getaddrinfo("server.duinocoin.com", "2814", NULL, &dns_result);
+        len = getaddrinfo("server.duinocoin.com", "2813", NULL, &dns_result);
         if(len != 0) goto on_error; // getaddrinfo() returns 0 on success
         len = connect(soc, dns_result->ai_addr, dns_result->ai_addrlen);
         if(len == -1) goto on_error;
