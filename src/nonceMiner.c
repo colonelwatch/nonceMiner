@@ -306,9 +306,9 @@ void* mining_routine(void* arg){
             int local_accepted_share = (strcmp(buf, "GOOD\n") == 0 || strcmp(buf, "BLOCK\n") == 0);
 
             if(local_accepted_share)
-                print_formatted_log(thread_code, "Share accepted, work-time %d.%d s", tdelta_ms/1000, tdelta_ms%1000);
+                print_formatted_log(thread_code, "Share accepted, work-time %d.%03d s", tdelta_ms/1000, tdelta_ms%1000);
             else
-                print_formatted_log(thread_code, "Share rejected, work-time %d.%d s", tdelta_ms/1000, tdelta_ms%1000);
+                print_formatted_log(thread_code, "Share rejected, work-time %d.%03d s", tdelta_ms/1000, tdelta_ms%1000);
 
             // Mutex section for updating shared statistics
             MUTEX_LOCK(&count_lock);
