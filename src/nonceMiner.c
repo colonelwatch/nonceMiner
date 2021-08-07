@@ -337,7 +337,7 @@ void* ping_routine(void *arg){
 
         // Resolves master server address and port then connects
         struct addrinfo *dns_result;
-        len = getaddrinfo("server.duinocoin.com", "2814", NULL, &dns_result);
+        len = getaddrinfo("server.duinocoin.com", "2813", NULL, &dns_result);
         if(len != 0) goto on_error; // getaddrinfo() returns 0 on success
         len = connect(soc, dns_result->ai_addr, dns_result->ai_addrlen);
         if(len == -1) goto on_error;
