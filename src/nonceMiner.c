@@ -162,7 +162,7 @@ void print_help(){
     puts("  -g    Spawn an OpenCL thread for each GPU detected");
 }
 
-void parse_job_string(long long *difficulty, int *prefix_length, unsigned char *prefix, unsigned char *target, const char *job_string){
+void parse_job_string(int64_t *difficulty, int *prefix_length, unsigned char *prefix, unsigned char *target, const char *job_string){
     int i;
     const char *ptr = job_string;
     i = 0;
