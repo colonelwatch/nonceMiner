@@ -1,41 +1,29 @@
-int count_digits(int num){
-    if(num < 100000)
-        if(num < 1000)
-            if(num < 100)
-                if(num < 10) return 1;
-                else return 2;
-            else return 3;
-        else
-            if(num < 10000) return 4;
-            else return 5;
-    else
-        if(num < 10000000)
-            if(num < 1000000) return 6;
-            else return 7;
-        else
-            if(num < 100000000) return 8;
-            else
-                if(num < 1000000000) return 9;
-                else return 10;
+// three_digit_table, minimum_digits, and powers_of_ten are defined in lookup_tables.cl
+
+int count_digits(long num){
+    if(num == 0) return 1;
+    int base2 = 8*sizeof(long)-clz(num)-1;
+    int digits = minimum_digits[base2]; // Equal to presumed log10(num) + 1
+    if(num >= powers_of_ten[digits]) digits++; // If presumed log10(num) is too small, add one
+    return digits;
 }
 
 void lookup_3_digits(char *arr, int num){
-    for(int i = 0; i < 3; i++) arr[i] = three_digit_table[i+3*num]; // three_digit_table defined in lookup_tables.cl
+    for(int i = 0; i < 3; i++) arr[i] = three_digit_table[i+3*num];
 }
 
-int fast_print_int(char *buf, int num){
-    char temp_buf[12];
-    char *temp_buf_ptr = temp_buf+12;
+int fast_print_int(char *buf, long num){
+    char temp_buf[20];
+    char *temp_buf_ptr = temp_buf+20;
     int n_digits = count_digits(num);
-    temp_buf[11] = '0'; // Necessary for the zero corner case
+    temp_buf[19] = '0'; // Necessary for the zero corner case
     
-    for(int working_num = num; working_num != 0; working_num /= 1000){
+    for(long working_num = num; working_num != 0; working_num /= 1000){
         temp_buf_ptr -= 3;
         lookup_3_digits(temp_buf_ptr, working_num % 1000);
     }
 
-    for(int i = 0; i < n_digits; i++) buf[i] = temp_buf[i+12-n_digits];
-    buf[n_digits] = '\0';
+    for(int i = 0; i < n_digits; i++) buf[i] = temp_buf[i+20-n_digits];
     return n_digits;
 }
 
@@ -47,20 +35,20 @@ int compare(unsigned int *hash, __constant const unsigned int *target)
 }
 
 __kernel void check_nonce(
-    __global int *next_nonce, 
+    __global long *next_nonce, 
     __constant const char *prefix, 
     __constant const unsigned int *target, 
-    __global int *correct_nonce
+    __global long *correct_nonce
 )
 {
-    __private unsigned int inbuf[13], outbuf[5];
-    unsigned int idx = get_global_id(0), current_nonce = (*next_nonce)+idx;
+    __private unsigned int inbuf[15], outbuf[5];
+    unsigned int idx = get_global_id(0);
+    long current_nonce = (*next_nonce)+idx;
     char *buffer_ptr = (char*)inbuf;
-    int length;
 
     for(int i = 0; i < 40; i++) buffer_ptr[i] = prefix[i];
-    for(int i = 40; i < 52; i++) buffer_ptr[i] = 0; // Pads buffer with zeroes (sha1 kernel expects this)
-    length = 40+fast_print_int(buffer_ptr+40, current_nonce); // But before printing (this way is faster)
+    for(int i = 40; i < 60; i++) buffer_ptr[i] = 0; // Pads buffer with zeroes (sha1 kernel expects this)
+    int length = 40+fast_print_int(buffer_ptr+40, current_nonce); // But before printing (this way is faster)
 
     hash_private(inbuf, length, outbuf);
     

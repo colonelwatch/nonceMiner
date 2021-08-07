@@ -218,13 +218,13 @@ void build_OpenCL_worker_kernel(worker_ctx *ctx, size_t auto_iterate_size){
     ctx->auto_iterate_size = auto_iterate_size;
 
     // Build the kernel buffers
-    ctx->nonce_int_mem = clCreateBuffer(ctx->context, CL_MEM_ALLOC_HOST_PTR, sizeof(cl_int), NULL, &ret);
+    ctx->nonce_int_mem = clCreateBuffer(ctx->context, CL_MEM_ALLOC_HOST_PTR, sizeof(cl_long), NULL, &ret);
     if(ret != CL_SUCCESS) _error_out("clCreateBuffer", ret);
     ctx->prefix_mem = clCreateBuffer(ctx->context, CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, 40*sizeof(char), NULL, &ret);
     if(ret != CL_SUCCESS) _error_out("clCreateBuffer", ret);
     ctx->target_mem = clCreateBuffer(ctx->context, CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, 5*sizeof(cl_uint), NULL, &ret);
     if(ret != CL_SUCCESS) _error_out("clCreateBuffer", ret);
-    ctx->correct_nonce_mem = clCreateBuffer(ctx->context, CL_MEM_WRITE_ONLY | CL_MEM_ALLOC_HOST_PTR, sizeof(cl_int), NULL, &ret);
+    ctx->correct_nonce_mem = clCreateBuffer(ctx->context, CL_MEM_WRITE_ONLY | CL_MEM_ALLOC_HOST_PTR, sizeof(cl_long), NULL, &ret);
     if(ret != CL_SUCCESS) _error_out("clCreateBuffer", ret);
     clFlush(ctx->command_queue);
     clFinish(ctx->command_queue);
@@ -233,15 +233,15 @@ void build_OpenCL_worker_kernel(worker_ctx *ctx, size_t auto_iterate_size){
 // Needs to be called before the first use of the context
 void init_OpenCL_worker_kernel(worker_ctx *ctx, const char *prefix, const char *target){
     // Generate some of the parameters to copy
-    cl_int temp_neg1 = -1;
+    cl_long temp_neg1 = -1;
     ctx->current_nonce = 0;
     _generate_expected(ctx->expected_hash, target);
 
     // Copy parameters into device memory
-    _write_pinned_mem(ctx, ctx->nonce_int_mem, &(ctx->current_nonce), sizeof(cl_int));
+    _write_pinned_mem(ctx, ctx->nonce_int_mem, &(ctx->current_nonce), sizeof(cl_long));
     _write_pinned_mem(ctx, ctx->prefix_mem, prefix, 40*sizeof(char));
     _write_pinned_mem(ctx, ctx->target_mem, ctx->expected_hash, 5*sizeof(cl_uint));
-    _write_pinned_mem(ctx, ctx->correct_nonce_mem, &temp_neg1, sizeof(cl_int));
+    _write_pinned_mem(ctx, ctx->correct_nonce_mem, &temp_neg1, sizeof(cl_long));
 
     // Set the kernel arguments
     clSetKernelArg(ctx->kernel, 0, sizeof(cl_mem), &(ctx->nonce_int_mem));
@@ -257,13 +257,13 @@ void launch_OpenCL_worker_kernel(worker_ctx *ctx){
     clFlush(ctx->command_queue);
 }
 
-void dump_OpenCL_worker_kernel(worker_ctx *ctx, int *output){
-    _read_pinned_mem(ctx, output, ctx->correct_nonce_mem, sizeof(int));
+void dump_OpenCL_worker_kernel(worker_ctx *ctx, int64_t *output){
+    _read_pinned_mem(ctx, output, ctx->correct_nonce_mem, sizeof(cl_long)); // cl_long and int64_t should be equiv
 }
 
 void increment_OpenCL_worker_kernel(worker_ctx *ctx){
     ctx->current_nonce += ctx->auto_iterate_size;
-    _write_pinned_mem(ctx, ctx->nonce_int_mem, &(ctx->current_nonce), sizeof(cl_int));
+    _write_pinned_mem(ctx, ctx->nonce_int_mem, &(ctx->current_nonce), sizeof(cl_long));
     clSetKernelArg(ctx->kernel, 0, sizeof(cl_mem), &(ctx->nonce_int_mem));
 }
 

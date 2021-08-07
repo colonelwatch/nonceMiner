@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdint.h>
 #include <string.h>
 #include <math.h>
 #include <time.h>
@@ -33,12 +34,12 @@
 const unsigned char DUCO_S1_prefix[] = "c5a8787a9c6392560df7ed9c0f253f89092d8cd2";
 const unsigned char DUCO_S1_target[] = "36c098fecc3e746247723bd74a3f0acf22b01985";
 const int DUCO_S1_diff = 950000;
-const int DUCO_S1_result = 23373972;
+const int64_t DUCO_S1_result = 23373972;
 
 const unsigned char xxhash_prefix[] = "cd062b0305a3de29b1a8bc5fb928e48d849804c2";
 const unsigned char xxhash_target[] = "9c31d2ef11adc708";
 const int xxhash_diff = 750000;
-const int xxhash_result = 21504575;
+const int64_t xxhash_result = 21504575;
 
 double average(double *arr, int arr_len){
     double sum = 0;
@@ -57,7 +58,7 @@ double std_dev(double *arr, int arr_len){
 }
 
 int main(){
-    long nonce;
+    int64_t nonce;
     TIMESTAMP_T t0, t1;
     int diff_ms_arr[AVERAGE_COUNT];
     double megahash_arr[AVERAGE_COUNT], megahash, megahash_error;

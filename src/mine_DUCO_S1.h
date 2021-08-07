@@ -2,6 +2,7 @@
 #define MINE_DUCO_S1_H
 
 #include <stdlib.h>
+#include <stdint.h>
 #include <openssl/sha.h>
 
 #include "utils/counter.h"
@@ -55,7 +56,7 @@ long mine_DUCO_S1(
  * 
  *  Builds and executes an OpenCL kernel on the GPU specified by the ctx.
  * */
-long mine_DUCO_S1_OpenCL(
+int64_t mine_DUCO_S1_OpenCL(
     const unsigned char *input_prefix,
     int prefix_length,
     const unsigned char target_hexdigest[DUCO_S1_SIZE*2],

@@ -3,6 +3,7 @@
 #include <time.h>
 #include <getopt.h> // gcc-only library (TODO: offer cl.exe alternative?)
 #include <stdarg.h>
+#include <inttypes.h> // Contains stdint.h, but also necessary printf format strings
 #ifdef _WIN32 // Windows-unique preprocessor directives for compatiblity
     #ifdef _WIN32_WINNT
         #undef _WIN32_WINNT
@@ -249,7 +250,7 @@ void* mining_routine(void* arg){
             print_formatted_log(thread_code, "New job from %s with difficulty %d", server_address, diff);
 
             // Solves the job according to the thread parameters
-            long nonce;
+            int64_t nonce;
             #ifndef NO_OPENCL
             if(shared_data->opencl_thread && prefix_length == 40)
                 nonce = mine_DUCO_S1_OpenCL(prefix, 40, target, diff, &gpu_ctxs[shared_data->thread_id]);
@@ -280,9 +281,9 @@ void* mining_routine(void* arg){
 
             // Generates and sends result string
             if(shared_data->opencl_thread)
-                len = sprintf(buf, "%ld,%d,%s OpenCL,%s\n", nonce, local_hashrate, program_name, identifier);
+                len = sprintf(buf, "%"PRIu64",%d,%s OpenCL,%s\n", nonce, local_hashrate, program_name, identifier);
             else
-                len = sprintf(buf, "%ld,%d,%s,%s\n", nonce, local_hashrate, program_name, identifier);
+                len = sprintf(buf, "%"PRIu64",%d,%s,%s\n", nonce, local_hashrate, program_name, identifier);
             len = send(soc, buf, len, 0);
             if(len == -1){
                 SPRINT_SOCK_ERRNO(buf, sizeof(buf), SOCK_ERRNO);
