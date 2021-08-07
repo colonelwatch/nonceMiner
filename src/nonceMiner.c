@@ -280,7 +280,7 @@ void* mining_routine(void* arg){
 
             // Generates and sends result string
             if(shared_data->opencl_thread)
-                len = sprintf(buf, "%ld,%d,%s,%s\n", nonce, local_hashrate, program_name, identifier);
+                len = sprintf(buf, "%ld,%d,%s OpenCL,%s\n", nonce, local_hashrate, program_name, identifier);
             else
                 len = sprintf(buf, "%ld,%d,%s,%s\n", nonce, local_hashrate, program_name, identifier);
             len = send(soc, buf, len, 0);
