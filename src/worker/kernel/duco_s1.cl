@@ -55,3 +55,25 @@ __kernel void check_nonce(
     // Conditional execution (halts other threads)
     if(compare(outbuf, target)) *correct_nonce = current_nonce;
 }
+
+__kernel void check_nonce_alt(
+    __global long *next_nonce, 
+    __constant const char *prefix, 
+    __constant const unsigned int *target, 
+    __global long *correct_nonce
+)
+{
+    __private unsigned int inbuf[9], outbuf[5];
+    unsigned int idx = get_global_id(0);
+    long current_nonce = (*next_nonce)+idx;
+    char *buffer_ptr = (char*)inbuf;
+
+    for(int i = 0; i < 16; i++) buffer_ptr[i] = prefix[i];
+    for(int i = 16; i < 36; i++) buffer_ptr[i] = 0; // Pads buffer with zeroes (sha1 kernel expects this)
+    int length = 16+fast_print_int(buffer_ptr+16, current_nonce); // But before printing (this way is faster)
+
+    hash_private(inbuf, length, outbuf);
+    
+    // Conditional execution (halts other threads)
+    if(compare(outbuf, target)) *correct_nonce = current_nonce;
+}

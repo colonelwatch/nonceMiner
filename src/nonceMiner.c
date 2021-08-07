@@ -114,7 +114,7 @@ enum Intensity {LOW, MEDIUM, NET, EXTREME};
 
 MUTEX_T count_lock; // Protects access to shares counters
 #ifndef NO_OPENCL
-worker_ctx *gpu_ctxs; // Holds contexts to be used by mine_DUCO_S1_OpenCL
+worker_ctx *gpu_ctxs, *alt_ctxs; // Holds contexts to be used by mine_DUCO_S1_OpenCL
 int n_gpus; // Holds size of gpu_ctxs array (and also the number of GPUs)
 #endif
 int server_is_online = 1;
@@ -255,16 +255,15 @@ void* mining_routine(void* arg){
             #ifndef NO_OPENCL
             if(shared_data->opencl_thread && prefix_length == 40)
                 nonce = mine_DUCO_S1_OpenCL(prefix, 40, target, diff, &gpu_ctxs[shared_data->thread_id]);
+            else if(shared_data->opencl_thread && prefix_length == 16)
+                nonce = mine_DUCO_S1_OpenCL(prefix, 16, target, diff, &alt_ctxs[shared_data->thread_id]);
             else if(using_xxhash)
             #else
             if(using_xxhash)
             #endif
                 nonce = mine_xxhash(prefix, prefix_length, target, diff);
-            else{
-                if(shared_data->opencl_thread)
-                    print_formatted_log(thread_code, "WARNING: xxhash prefix detected (not supported on GPU yet), defaulting to CPU");
+            else
                 nonce = mine_DUCO_S1(prefix, prefix_length, target, diff);
-            }
 
             // If a hashrate limit is in place, sleep until it is met
             GET_TIME(&t3);
@@ -489,6 +488,7 @@ int main(int argc, char **argv){
         n_gpus = count_OpenCL_devices(CL_DEVICE_TYPE_GPU);
         cl_device_id *gpu_ids = (cl_device_id*)malloc(n_gpus*sizeof(cl_device_id));
         gpu_ctxs = (worker_ctx*)malloc(n_gpus*sizeof(worker_ctx));
+        alt_ctxs = (worker_ctx*)malloc(n_gpus*sizeof(worker_ctx));
         get_OpenCL_devices(gpu_ids, n_gpus, CL_DEVICE_TYPE_GPU);
         init_OpenCL_workers(gpu_ctxs, gpu_ids, n_gpus);
 
@@ -503,7 +503,9 @@ int main(int argc, char **argv){
             clGetDeviceInfo(gpu_ids[i], CL_DEVICE_NAME, 128, gpu_name_buffer, NULL);
             printf("Building source and kernel for GPU %d (%s)...\n", i, gpu_name_buffer);
             build_OpenCL_worker_source(&gpu_ctxs[i], gpu_ids[i], filenames, 4);
-            build_OpenCL_worker_kernel(&gpu_ctxs[i], 524288);
+            alt_ctxs[i] = gpu_ctxs[i]; // Copy the same relevant data to the alternate context
+            build_OpenCL_worker_kernel(&gpu_ctxs[i], 524288, 0);
+            build_OpenCL_worker_kernel(&alt_ctxs[i], 524288, 1);
         }
 
         puts("OpenCL configuration complete, will launch GPU threads after CPU threads.");

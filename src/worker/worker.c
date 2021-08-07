@@ -209,10 +209,17 @@ void await_OpenCL_worker(worker_ctx *ctx){
 }
 
 
-void build_OpenCL_worker_kernel(worker_ctx *ctx, size_t auto_iterate_size){
+void build_OpenCL_worker_kernel(worker_ctx *ctx, size_t auto_iterate_size, int alternate_mode){
     // Create the OpenCL kernel
     cl_int ret;
-    ctx->kernel = clCreateKernel(ctx->program, "check_nonce", &ret);
+    if(alternate_mode){
+        ctx->kernel = clCreateKernel(ctx->program, "check_nonce_alt", &ret);
+        ctx->prefix_size = 16*sizeof(char);
+    }
+    else{
+        ctx->kernel = clCreateKernel(ctx->program, "check_nonce", &ret);
+        ctx->prefix_size = 40*sizeof(char);
+    }
     if(ret != CL_SUCCESS) _error_out("clCreateKernel", ret);
 
     ctx->auto_iterate_size = auto_iterate_size;
@@ -220,7 +227,7 @@ void build_OpenCL_worker_kernel(worker_ctx *ctx, size_t auto_iterate_size){
     // Build the kernel buffers
     ctx->nonce_int_mem = clCreateBuffer(ctx->context, CL_MEM_ALLOC_HOST_PTR, sizeof(cl_long), NULL, &ret);
     if(ret != CL_SUCCESS) _error_out("clCreateBuffer", ret);
-    ctx->prefix_mem = clCreateBuffer(ctx->context, CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, 40*sizeof(char), NULL, &ret);
+    ctx->prefix_mem = clCreateBuffer(ctx->context, CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, ctx->prefix_size, NULL, &ret);
     if(ret != CL_SUCCESS) _error_out("clCreateBuffer", ret);
     ctx->target_mem = clCreateBuffer(ctx->context, CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, 5*sizeof(cl_uint), NULL, &ret);
     if(ret != CL_SUCCESS) _error_out("clCreateBuffer", ret);
@@ -239,7 +246,7 @@ void init_OpenCL_worker_kernel(worker_ctx *ctx, const char *prefix, const char *
 
     // Copy parameters into device memory
     _write_pinned_mem(ctx, ctx->nonce_int_mem, &(ctx->current_nonce), sizeof(cl_long));
-    _write_pinned_mem(ctx, ctx->prefix_mem, prefix, 40*sizeof(char));
+    _write_pinned_mem(ctx, ctx->prefix_mem, prefix, ctx->prefix_size);
     _write_pinned_mem(ctx, ctx->target_mem, ctx->expected_hash, 5*sizeof(cl_uint));
     _write_pinned_mem(ctx, ctx->correct_nonce_mem, &temp_neg1, sizeof(cl_long));
 

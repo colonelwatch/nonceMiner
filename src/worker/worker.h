@@ -19,6 +19,7 @@ typedef struct{
     cl_program program;
     cl_kernel kernel;
     cl_mem nonce_int_mem, prefix_mem, target_mem, correct_nonce_mem;
+    size_t prefix_size;
     cl_uint expected_hash[5];
     size_t auto_iterate_size;
     cl_long current_nonce;
@@ -40,7 +41,7 @@ void build_OpenCL_worker_source(worker_ctx *ctx, cl_device_id device_id, char **
 void await_OpenCL_worker(worker_ctx *ctx);
 
 // OpenCL kernel functions
-void build_OpenCL_worker_kernel(worker_ctx *ctx, size_t auto_iterate_size);
+void build_OpenCL_worker_kernel(worker_ctx *ctx, size_t auto_iterate_size, int alternate_mode);
 void init_OpenCL_worker_kernel(worker_ctx *ctx, const char *prefix, const char *target);
 void launch_OpenCL_worker_kernel(worker_ctx *ctx);
 void dump_OpenCL_worker_kernel(worker_ctx *ctx, int64_t *output);
