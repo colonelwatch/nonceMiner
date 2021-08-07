@@ -4,10 +4,10 @@ A casual project about running the DUCO-S1 algorithm, from revoxhere's [duino-co
 
 Not familiar with hash midstate caching? The idea is to cache the SHA-1 algorithm's state after it processes the prefix (creating the midstate) then to finish the hash with the guessed nonces repeatedly, but while reusing the midstate, until the right nonce is found. This saves a lot of calculation, and it's already being used in Bitcoin mining.
 
-My laptop has a maximum CPU+GPU performance of 33.8 + 85.12 = 118.92 MH/s (Intel i7-8550U + UHD Graphics 630) when running `benchmark.exe`. After network / master server delays and power throttling, the online performance is about 50 MH/s. In other words, it's the fastest open-source DUCO-S1 miner around. Here are some other maximum figures as July 25, 2021:
+My laptop (Intel i7-8550U + UHD Graphics 630) averages about 60 MH/s. In other words, it's the fastest open-source DUCO-S1 miner around. Here are some other figures as July 25, 2021:
 
-* Nvidia RTX 3070: 1.79 GH/s
-* Nvidia GTX 1060 6GB: 612 MH/s
+* Nvidia RTX 3070: 1.65 GH/s
+* Nvidia GTX 1060 6GB: 684 MH/s
 * Nvidia GTX 770: 343 MH/s
 * Ryzen 5 3600: 106 MH/s
 * Raspberry Pi 3B (CPU only): 4 MH/s
@@ -45,7 +45,7 @@ Prerequisites: `gcc` (MinGW on Windows), `libssl-dev` (at least a development Op
 1) Call `make nonceMiner` in the repo directory
   * To compile without OpenCL, call `make nonceMiner CFLAGS='-O3 -Wall -D NO_OPENCL'` in the repo directory
 2) Navigate to the bin folder with `cd bin`
-3) Execute `./nonceMiner -u <your username here>`, or pull the compiled binary AND the OpenCL sources from `bin` (if compiled with OpenCL)
+3) Execute `./nonceMiner -u <your username here> -o <node URL here>`, or pull the compiled binary AND the OpenCL sources from `bin` (if compiled with OpenCL)
 
 Additionally, the following test programs are available:
 * `benchmark` - Evaluate DUCO-S1 and xxhash performance on your machine
