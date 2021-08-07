@@ -162,7 +162,7 @@ void print_help(){
     puts("  -g    Spawn an OpenCL thread for each GPU detected");
 }
 
-void parse_job_string(int *difficulty, int *prefix_length, unsigned char *prefix, unsigned char *target, const char *job_string){
+void parse_job_string(long long *difficulty, int *prefix_length, unsigned char *prefix, unsigned char *target, const char *job_string){
     int i;
     const char *ptr = job_string;
     i = 0;
@@ -172,7 +172,7 @@ void parse_job_string(int *difficulty, int *prefix_length, unsigned char *prefix
     i = 0;
     while(*ptr != ',') target[i++] = *(ptr++);
     ptr++;
-    *difficulty = atoi(ptr);
+    *difficulty = atoll(ptr); // Note: atoll() applied to int64_t is not 100% portable
 }
 
 void* mining_routine(void* arg){
@@ -244,10 +244,11 @@ void* mining_routine(void* arg){
             GET_TIME(&t2);
             
             // Parse the job string dynamically
-            int diff, prefix_length;
+            int64_t diff;
+            int prefix_length;
             unsigned char prefix[64], target[64];
             parse_job_string(&diff, &prefix_length, prefix, target, buf);
-            print_formatted_log(thread_code, "New job from %s with difficulty %d", server_address, diff);
+            print_formatted_log(thread_code, "New job from %s with difficulty %"PRId64, server_address, diff);
 
             // Solves the job according to the thread parameters
             int64_t nonce;
@@ -276,14 +277,14 @@ void* mining_routine(void* arg){
             // Calculates hashrate to report back to server
             GET_TIME(&t1);
             int tdelta_ms = DIFF_TIME_MS(&t1, &t0);
-            int local_hashrate = nonce/tdelta_ms*1000;
+            int64_t local_hashrate = nonce/tdelta_ms*1000;
             t0 = t1;
 
             // Generates and sends result string
             if(shared_data->opencl_thread)
-                len = sprintf(buf, "%"PRIu64",%d,%s OpenCL,%s\n", nonce, local_hashrate, program_name, identifier);
+                len = sprintf(buf, "%"PRId64",%"PRId64",%s OpenCL,%s\n", nonce, local_hashrate, program_name, identifier);
             else
-                len = sprintf(buf, "%"PRIu64",%d,%s,%s\n", nonce, local_hashrate, program_name, identifier);
+                len = sprintf(buf, "%"PRId64",%"PRId64",%s,%s\n", nonce, local_hashrate, program_name, identifier);
             len = send(soc, buf, len, 0);
             if(len == -1){
                 SPRINT_SOCK_ERRNO(buf, sizeof(buf), SOCK_ERRNO);
@@ -548,7 +549,7 @@ int main(int argc, char **argv){
     while(1){
         SLEEP(10);
         
-        int total_hashrate = 0;
+        int64_t total_hashrate = 0;
         for(int i = 0; i < total_threads; i++) total_hashrate += thread_data_arr[i].hashrate;
         float megahash = (float)total_hashrate/1000000;
 

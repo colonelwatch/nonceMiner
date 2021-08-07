@@ -40,10 +40,10 @@ int64_t mine_DUCO_S1_OpenCL(
     const unsigned char *input_prefix,
     int prefix_length,
     const unsigned char target_hexdigest[DUCO_S1_SIZE*2],
-    int difficulty,
+    int64_t difficulty,
     worker_ctx *ctx)
 {
-    int64_t maximum = 100*(int64_t)difficulty+1;
+    int64_t maximum = 100*difficulty+1;
     int64_t correct_nonce;
     init_OpenCL_worker_kernel(ctx, (const char*)input_prefix, (const char*)target_hexdigest);
 

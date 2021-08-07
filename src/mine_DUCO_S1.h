@@ -60,7 +60,7 @@ int64_t mine_DUCO_S1_OpenCL(
     const unsigned char *input_prefix,
     int prefix_length,
     const unsigned char target_hexdigest[DUCO_S1_SIZE*2],
-    int difficulty,
+    int64_t difficulty,
     worker_ctx *ctx);
 #endif
 
