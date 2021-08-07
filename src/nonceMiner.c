@@ -124,8 +124,8 @@ int job_request_len;
 int program_name_overrided = 0;
 float hashrate_limit = 0; // Expressed in MH/s
 char job_request[256];
-char server_address[256] = "149.91.88.18"; // Default server should be pulse-pool-1
-char server_port[16] = "6000";
+char server_address[256] = ""; // Default is empty string, but must be configured with -o option
+char server_port[16] = "";
 char username[128];
 char identifier[128] = ""; // Default value should be empty string
 char program_name[64] = "nonceMiner v2.1.2"; // Can be overrided with -n option
@@ -441,6 +441,10 @@ int main(int argc, char **argv){
 
     if(strcmp(username, "") == 0){
         fprintf(stderr, "Missing username '-u'.\n");
+        return 1;
+    }
+    if(strcmp(server_address, "") == 0 || strcmp(server_port, "") == 0){
+        fprintf(stderr, "Missing node address and port '-o'.\n");
         return 1;
     }
     if(n_threads == 0 && !using_OpenCL){
