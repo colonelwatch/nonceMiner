@@ -394,7 +394,7 @@ int main(int argc, char **argv){
             case 'o': ; // Empty statement preceding declaration is necessary
                 char *start_ptr = optarg;
                 if(strncmp(optarg, "tcp://", 6) == 0) start_ptr += 6; // For now, ignores tcp header if present
-                if(sscanf((const char*)start_ptr, "%255[a-z0-9.]:%15[0-9]", server_address, server_port) != 2){
+                if(sscanf((const char*)start_ptr, "%255[a-z0-9.-]:%15[0-9]", server_address, server_port) != 2){
                     fprintf(stderr, "Option -o is not a valid address and port");
                     return 1;
                 }
