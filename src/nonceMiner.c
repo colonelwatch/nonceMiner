@@ -514,8 +514,12 @@ int main(int argc, char **argv){
         printf("Program name overrided to '%s'...\n", program_name);
     if(hashrate_limit > 0)
         printf("Hashrate limit set to %.2f MH/s...\n", hashrate_limit);
+    if(using_xxhash){
+        printf("Running in xxhash mode...\nWARNING: Per-thread hashrates over 0.9 MH/s may be rejected.\n");
+        if(diff != EXTREME) printf("WARNING: xxhash mode called with -i flag. xxhash mode does not have configurable difficulty/intensity.\n");
+    }
     #ifndef NO_OPENCL
-    if(using_OpenCL){
+    if(using_OpenCL && !using_xxhash){
         printf("OpenCL flag detected, detecting GPUs...\n");
 
         // Counts the number of GPUs
@@ -568,11 +572,9 @@ int main(int argc, char **argv){
         puts("OpenCL configuration complete, will launch GPU threads after CPU threads.");
         free(gpu_ids);
     }
+    else if(using_OpenCL && using_xxhash)
+        puts("WARNING: xxhash mode called with -g flag (xxhash not supported on OpenCL), will launch CPU threads only.");
     #endif
-    if(using_xxhash){
-        printf("Running in xxhash mode...\nWARNING: Per-thread hashrates over 0.9 MH/s may be rejected.\n");
-        if(diff != EXTREME) printf("WARNING: xxhash mode called with -i flag. xxhash mode does not have configurable difficulty/intensity.\n");
-    }
     printf("Starting threads...\n");
 
     #ifndef NO_OPENCL
