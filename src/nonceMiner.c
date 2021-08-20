@@ -457,7 +457,9 @@ int main(int argc, char **argv){
                 }
                 break;
             case '?':
-                if(optopt == 'a' || optopt == 'i' || optopt == 'o' || optopt == 'u' || optopt == 'w' || optopt == 'n' || optopt == 't')
+                if( optopt == 'a' || optopt == 'i' || optopt == 'o' || optopt == 'u' || 
+                    optopt == 'w' || optopt == 'n' || optopt == 't' || optopt == 'l' ||
+                    optopt == 's')
                     fprintf(stderr, "Option -%c requires an argument.\n", optopt);
                 else
                     fprintf(stderr, "Unknown option '-%c'.\n", optopt);
