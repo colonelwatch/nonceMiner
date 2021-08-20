@@ -537,6 +537,12 @@ int main(int argc, char **argv){
             }
             n_gpus = n_selected_gpus;
         }
+        else{ // If no devices are selected...
+            // Fill the device selection with all GPUs
+            device_selection.n_indexes = n_gpus;
+            device_selection.indexes = (int*)malloc(n_gpus*sizeof(int));
+            for(int i = 0; i < n_gpus; i++) device_selection.indexes[i] = i;
+        }
 
         // Initialize OpenCL on the GPUs
         gpu_ctxs = (worker_ctx*)malloc(n_gpus*sizeof(worker_ctx));
@@ -552,7 +558,7 @@ int main(int argc, char **argv){
         char gpu_name_buffer[128];
         for(int i = 0; i < n_gpus; i++){
             clGetDeviceInfo(gpu_ids[i], CL_DEVICE_NAME, 128, gpu_name_buffer, NULL);
-            printf("Building source and kernel for GPU %d (%s)...\n", i, gpu_name_buffer);
+            printf("Building source and kernel for GPU %d (%s)...\n", device_selection.indexes[i], gpu_name_buffer);
             build_OpenCL_worker_source(&gpu_ctxs[i], gpu_ids[i], filenames, 4);
             alt_ctxs[i] = gpu_ctxs[i]; // Copy the same relevant data to the alternate context
             build_OpenCL_worker_kernel(&gpu_ctxs[i], 524288, 0);
