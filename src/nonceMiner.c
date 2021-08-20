@@ -518,21 +518,18 @@ int main(int argc, char **argv){
     if(using_OpenCL){
         printf("OpenCL flag detected, detecting GPUs...\n");
 
+        // Counts the number of GPUs
         n_gpus = count_OpenCL_devices(CL_DEVICE_TYPE_GPU);
         cl_device_id *gpu_ids = (cl_device_id*)malloc(n_gpus*sizeof(cl_device_id));
-        gpu_ctxs = (worker_ctx*)malloc(n_gpus*sizeof(worker_ctx));
-        alt_ctxs = (worker_ctx*)malloc(n_gpus*sizeof(worker_ctx));
         get_OpenCL_devices(gpu_ids, n_gpus, CL_DEVICE_TYPE_GPU);
 
         if(device_selection.n_indexes != 0){ // If devices are selected...
-            // Modify gpu lists in-place to only include selected devices
+            // Modify gpu_ids in-place to only include selected devices
             int n_selected_gpus = 0;
             for(int i = 0; i < n_gpus; i++){
                 for(int j = 0; j < device_selection.n_indexes; j++){
                     if(i == device_selection.indexes[j]){
                         gpu_ids[n_selected_gpus] = gpu_ids[i];
-                        gpu_ctxs[n_selected_gpus] = gpu_ctxs[i];
-                        alt_ctxs[n_selected_gpus] = alt_ctxs[i];
                         n_selected_gpus++;
                         break;
                     }
@@ -541,6 +538,9 @@ int main(int argc, char **argv){
             n_gpus = n_selected_gpus;
         }
 
+        // Initialize OpenCL on the GPUs
+        gpu_ctxs = (worker_ctx*)malloc(n_gpus*sizeof(worker_ctx));
+        alt_ctxs = (worker_ctx*)malloc(n_gpus*sizeof(worker_ctx));
         init_OpenCL_workers(gpu_ctxs, gpu_ids, n_gpus);
 
         char *filenames[4] = {
