@@ -110,6 +110,11 @@ struct _thread_resources{
     int opencl_thread;
 };
 
+struct _device_selection{
+    int *indexes;
+    int n_indexes;
+} device_selection = {.indexes = NULL, .n_indexes = 0};
+
 enum Intensity {LOW, MEDIUM, NET, EXTREME};
 
 MUTEX_T count_lock; // Protects access to shares counters
@@ -159,7 +164,8 @@ void print_help(){
     puts("  -n    Program name for mining (overrides default name)");
     puts("  -t    Number of threads");
     puts("  -l    Hashrate limit per-thread, applies to CPU threads only (MH/s)");
-    puts("  -g    Spawn an OpenCL thread for each GPU detected");
+    puts("  -g    Enable OpenCL hashing");
+    puts("  -s    Select OpenCL devices with a comma separated list");
 }
 
 void parse_job_string(int64_t *difficulty, int *prefix_length, unsigned char *prefix, unsigned char *target, const char *job_string){
@@ -368,7 +374,7 @@ int main(int argc, char **argv){
     int opt;
     opterr = 0; // Disables default getopt error messages
 
-    while((opt = getopt(argc, argv, "ha:i:o:u:w:n:t:l:g")) != -1){
+    while((opt = getopt(argc, argv, "ha:i:o:u:w:n:t:l:gs:")) != -1){
         switch(opt){
             case 'h':
                 print_help();
@@ -429,6 +435,27 @@ int main(int argc, char **argv){
                 fprintf(stderr, "Option -g requires compiling with OpenCL support.\n");
                 return 1;
                 #endif
+            case 's': ;
+                device_selection.n_indexes = 0;
+                char *ptr = optarg;
+                while(1){
+                    int temp_idx, chars_read;
+                    if(sscanf(ptr, "%d%n", &temp_idx, &chars_read) != 1) break;
+                    device_selection.n_indexes++;
+
+                    ptr += chars_read;
+                    if(*ptr == '\0') break;
+                    else if(*ptr == ',') ptr++;
+                }
+
+                ptr = optarg;
+                device_selection.indexes = (int*)malloc(sizeof(int)*device_selection.n_indexes);
+                for(int i = 0; i < device_selection.n_indexes; i++){
+                    int chars_read;
+                    sscanf(ptr, "%d%n", &device_selection.indexes[i], &chars_read);
+                    ptr += chars_read+1;
+                }
+                break;
             case '?':
                 if(optopt == 'a' || optopt == 'i' || optopt == 'o' || optopt == 'u' || optopt == 'w' || optopt == 'n' || optopt == 't')
                     fprintf(stderr, "Option -%c requires an argument.\n", optopt);
@@ -448,6 +475,10 @@ int main(int argc, char **argv){
     }
     if(n_threads == 0 && !using_OpenCL){
         fprintf(stderr, "Option -t requires a positive integer argument (or zero if using GPUs).\n");
+        return 1;
+    }
+    if(device_selection.n_indexes > 0 && !using_OpenCL){
+        fprintf(stderr, "Selecting OpenCL devices with option -s requires enabling OpenCL with option -g.\n");
         return 1;
     }
     
@@ -490,6 +521,24 @@ int main(int argc, char **argv){
         gpu_ctxs = (worker_ctx*)malloc(n_gpus*sizeof(worker_ctx));
         alt_ctxs = (worker_ctx*)malloc(n_gpus*sizeof(worker_ctx));
         get_OpenCL_devices(gpu_ids, n_gpus, CL_DEVICE_TYPE_GPU);
+
+        if(device_selection.n_indexes != 0){ // If devices are selected...
+            // Modify gpu lists in-place to only include selected devices
+            int n_selected_gpus = 0;
+            for(int i = 0; i < n_gpus; i++){
+                for(int j = 0; j < device_selection.n_indexes; j++){
+                    if(i == device_selection.indexes[j]){
+                        gpu_ids[n_selected_gpus] = gpu_ids[i];
+                        gpu_ctxs[n_selected_gpus] = gpu_ctxs[i];
+                        alt_ctxs[n_selected_gpus] = alt_ctxs[i];
+                        n_selected_gpus++;
+                        break;
+                    }
+                }
+            }
+            n_gpus = n_selected_gpus;
+        }
+
         init_OpenCL_workers(gpu_ctxs, gpu_ids, n_gpus);
 
         char *filenames[4] = {
