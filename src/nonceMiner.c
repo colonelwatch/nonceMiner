@@ -162,7 +162,7 @@ void print_help(){
     puts("  -u    Username for mining");
     puts("  -w    Identifier for mining");
     puts("  -n    Program name for mining (overrides default name)");
-    puts("  -t    Number of threads");
+    puts("  -t    Number of threads (zero threads only allowed with -g)");
     puts("  -l    Hashrate limit per-thread, applies to CPU threads only (MH/s)");
     puts("  -g    Enable OpenCL hashing");
     puts("  -s    Select OpenCL devices with a comma separated list");

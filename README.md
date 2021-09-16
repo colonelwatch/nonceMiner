@@ -17,7 +17,7 @@ To try it out yourself, grab a release! There, you can find a pre-compiled Windo
 Disclaimer: This project does not represent my personal endorsement of duino-coin, just that their algorithm can be run really, *really* fast.
 
 ## Running
-The nonceMiner binary is dependent on OpenSSL and OpenCL. The OpenSSL light binary is availible for Windows on [slproweb.com](https://slproweb.com/products/Win32OpenSSL.html), and this usually comes pre-installed on Linux. The OpenCL runtime should come with your graphics driver.
+The nonceMiner binary is dependent on OpenSSL **1.1** and OpenCL. The OpenSSL light binary is availible for Windows on [slproweb.com](https://slproweb.com/products/Win32OpenSSL.html). Make sure to choose the **1.1** binary, not the 3.0 binary. The OpenSSL 1.1 binary usually comes pre-installed on Linux. The OpenCL runtime should come with your graphics driver.
 
 The binary is executable with the following options.
 
@@ -30,17 +30,20 @@ Options:
   -u    Username for mining
   -w    Identifier for mining
   -n    Program name for mining (overrides default name)
-  -t    Number of threads
+  -t    Number of threads (zero threads only allowed with -g)
   -l    Hashrate limit per-thread, applies to CPU threads only (MH/s)
-  -g    Spawn an OpenCL thread for each GPU detected
+  -g    Enable OpenCL hashing
+  -s    Select OpenCL devices with a comma separated list
 ```
+
+The only two mandatory arguments are `-u` and `-o`, where the node URL is available from https://server.duinocoin.com/getPool.
 
 Please note that the xxhash mode is additionally up to five times faster, but the server imposes a per-thread hashrate limit of 0.9 MH/s. Exceeding this limit will cause shares to be rejected.
 
 ## Compiling
 I compiled this before in Windows 10 and WSL2 (Ubuntu 20.04 LTS), so results outside these environments may vary.
 
-Prerequisites: `gcc` (MinGW on Windows), `libssl-dev` (at least a development OpenSSL binary in Windows, I used the [slproweb.com](https://slproweb.com/products/Win32OpenSSL.html) copy, *not the "light" binary*), `libOpenCL` from your GPU drivers (applies to both Linux and Windows)
+Prerequisites: `gcc` (MinGW on Windows), `libssl-dev` (at least the development OpenSSL **1.1** binary in Windows, I used the [slproweb.com](https://slproweb.com/products/Win32OpenSSL.html) copy, *not the "light" binary*), `libOpenCL` from your GPU drivers (applies to both Linux and Windows)
 
 1) Call `make nonceMiner` in the repo directory
   * To compile without OpenCL, call `make nonceMiner CFLAGS='-O3 -Wall -D NO_OPENCL'` in the repo directory
