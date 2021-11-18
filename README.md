@@ -38,6 +38,9 @@ Options:
 
 The only two mandatory arguments are `-u` and `-o`, where the node URL is available from https://server.duinocoin.com/getPool.
 
+Node Url Can Be From Master Server  
+51.15.127.80:2811  
+
 Please note that the xxhash mode is additionally up to five times faster, but the server imposes a per-thread hashrate limit of 0.9 MH/s. Exceeding this limit will cause shares to be rejected.
 
 ## Compiling
